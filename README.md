@@ -36,7 +36,7 @@ Impact: Builds your reputation and network as a skilled professional contributin
 Benefit: The vibrant design with large emojis and an intuitive interface makes monitoring a more enjoyable experience.
 Impact: Keeps you engaged with the tool, ensuring it becomes a routine part of your cybersecurity workflow.
 
-#How This Dashboard Stands Out:
+# How This Dashboard Stands Out:
 Comprehensive Coverage: With 108 feeds, it covers an impressive range of sources, from official advisories (like US-CERT) to community blogs (like Krebs on Security).
 Automation: Automates the tedious process of checking multiple sources manually, freeing you to focus on analysis and action.
 Scalability: The architecture allows you to easily add or remove feeds, adapting to your evolving needs.
@@ -46,7 +46,7 @@ Using this CTI dashboard positions you ahead of the curve in threat intelligence
 
 
 
-#Who Benefits from This Data Overload?
+# Who Benefits from This Data Overload?
 - Security Operations Centers (SOCs): This dashboard becomes a critical tool, delivering real-time updates from across the cybersecurity landscape to help SOC teams detect and respond to threats faster.
 
 - Threat Hunters: A treasure trove of data, providing a steady stream of insights on potential exploits, attack vectors, and indicators of compromise to aid in proactive hunting.
