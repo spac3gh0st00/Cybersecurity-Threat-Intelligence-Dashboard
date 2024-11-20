@@ -56,4 +56,4 @@ Using this CTI dashboard positions you ahead of the curve in threat intelligence
 - Curious Enthusiasts: Or perhaps you simply want to sit back, enjoy the spectacle, and bask in the satisfaction of wielding an unparalleled source of cyber intelligence, knowing you're in control of it all.
 
 
-- - credit goes to Gerard King, Cybersecurity Overlord and Master of Excess
+# credit goes to Gerard King, Cybersecurity Overlord and Master of Excess
