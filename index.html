@@ -150,6 +150,7 @@
         const chartContainer = document.getElementById('chartContainer');
         const mapContainer = document.getElementById('mapContainer');
         const rssFeeds = [
+        "https://www.us-cert.gov/ncas/alerts.xml",
             "https://www.us-cert.gov/ncas/alerts.xml",
             "https://www.bleepingcomputer.com/feed/",
             "https://threatpost.com/feed/",
@@ -285,8 +286,7 @@
             "https://www.tripwire.com/state-of-security/feed/",
             "https://www.us-cert.gov/ncas/alerts.xml",
             "https://www.zdnet.com/topic/security/rss.xml",
-            "https://blog.rapid7.com/rss/"
-        ];
+            "https://blog.rapid7.com/rss/" /* other feed URLs */];
 
         const proxyUrl = "https://api.rss2json.com/v1/api.json?rss_url=";
 
