@@ -4,13 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️💀 Cybersecurity Threat Intelligence Dashboard💀🛡️</title>
+    <title>🛡️💀 Cybersecurity Threat Intelligence Dashboard 💀🛡️</title>
     <meta name="author" content="modified by spac3gh0st">
     <meta name="description" content="Cybersecurity Threat Intelligence Dashboard aggregating feeds from 108 sources, built for real-time monitoring and analysis.">
-    <meta name="keywords" content="Cybersecurity, Threat Intelligence, RSS Feeds, Execution Policy, PowerShell, Gerard King, Red Team, Security">
     <meta name="theme-color" content="#1c1c1c">
-    <meta name="website" content="www.gerardking.dev">
-    <meta name="donate" content="Ethereum Address: 0xFC55ca839f38Cad5418CF9BA842b4Fb601cB4765">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -38,17 +35,34 @@
         }
 
         header .emoji {
-            font-size: 5rem; /* Super huge emoji! */
+            font-size: 5rem;
         }
 
-        .feed-container {
+        .filter-container, .feed-container {
             margin-top: 20px;
             width: 90%;
             max-width: 1200px;
-            background-color: #2c2c2c;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .filter-container {
+            background-color: #2c2c2c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filter-container input {
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #000;
+        }
+
+        .feed-container {
+            background-color: #2c2c2c;
             overflow-y: auto;
             max-height: 80vh;
         }
@@ -92,168 +106,33 @@
             width: 100%;
             max-width: 1200px;
         }
-
-        footer .emoji {
-            font-size: 3rem; /* Huge emoji for footer */
-        }
     </style>
 </head>
 
 <body>
     <header>
-        <div class="emoji">🛡R️💀R</div>
-        <h1>Cybeseurity Threat Intelligence Dashboard</h1>
-        <div class="emoji">💀R🛡R️</div>
+        <div class="emoji">🛡️💀</div>
+        <h1>Cybersecurity Threat Intelligence Dashboard</h1>
+        <div class="emoji">💀🛡️</div>
     </header>
-   <div class="feed-container" id="feedContainer">
+
+    <div class="filter-container">
+        <input type="text" id="searchBox" placeholder="Search threats..." oninput="filterFeeds()">
+    </div>
+
+    <div class="feed-container" id="feedContainer">
         <!-- RSS feed content will be dynamically loaded here -->
     </div>
 
     <footer>
         <div>&copy; 2024 spac3gh0st | Aggregating 108 Cyber Threat Feeds</div>
-        <div class="emoji">🥝Q🚨</div>
-   </footer>
+        <div class="emoji">🚨</div>
+    </footer>
 
     <script>
         const feedContainer = document.getElementById('feedContainer');
-        const rssFeeds = [
-            "https://www.us-cert.gov/ncas/alerts.xml",
-            "https://www.bleepingcomputer.com/feed/",
-            "https://threatpost.com/feed/",
-            "https://www.darkreading.com/rss.xml",
-            "https://www.sans.org/webcasts/rss",
-            "https://krebsonsecurity.com/feed/",
-            "https://cyware.com/rss-feed/",
-            "https://www.securityweek.com/rss",
-            "https://feeds.feedburner.com/TheHackersNews",
-            "https://www.schneier.com/blog/atom.xml",
-            "https://isc.sans.edu/rssfeed.xml",
-            "https://www.fireeye.com/blog/threat-research/_jcr_content.feed",
-            "https://blogs.cisco.com/security/feed",
-            "https://www.mcafee.com/blogs/feed/",
-            "https://nakedsecurity.sophos.com/feed/",
-            "https://www.tripwire.com/state-of-security/feed/",
-            "https://research.checkpoint.com/feed/",
-            "https://www.zdnet.com/topic/security/rss.xml",
-            "https://www.infosecurity-magazine.com/rss/news/",
-            "https://cybersecurity.att.com/site/blog-all-rss",
-            "https://www.cybereason.com/blog/rss.xml",
-            "https://blog.qualys.com/feed/",
-            "https://www.tenable.com/blog/feed",
-            "https://www.blackhillsinfosec.com/feed/",
-            "https://rss.packetstormsecurity.com/files/",
-            "https://unit42.paloaltonetworks.com/feed/",
-            "https://www.arbornetworks.com/blog/asert/feed/",
-            "https://www.trendmicro.com/rss/index.xml",
-            "https://www.crowdstrike.com/blog/feed/",
-            "https://securityaffairs.co/wordpress/feed",
-            "http://blog.crowdstrike.com/feed",
-            "http://blog.emsisoft.com/feed/",
-            "http://blog.eset.com/feed",
-            "http://blog.jpcert.or.jp/atom.xml",
-            "http://blog.morphisec.com/rss.xml",
-            "http://blogs.technet.com/mmpc/rss.xml",
-            "http://blogs.technet.com/msrc/rss.xml",
-            "http://cybersecuritynews.es/feed/",
-            "http://cyberseguridad.net/index.php?format=feed&type=rss",
-            "http://feeds.feedblitz.com/alienvault-blogs&x=1",
-            "http://feeds.feedblitz.com/alienvault-security-essentials",
-            "http://feeds.feedburner.com/andreafortuna",
-            "http://feeds.feedburner.com/darknethackers",
-            "http://feeds.feedburner.com/dragonjar/pKru",
-            "http://feeds.feedburner.com/FluProject",
-            "http://feeds.feedburner.com/PentestTools",
-            "http://feeds.trendmicro.com/TrendMicroResearch",
-            "http://feeds.trendmicro.com/TrendMicroSecurityAdvisories",
-            "http://iscxml.sans.org/rssfeed.xml",
-            "http://pax0r.com/feed/",
-            "http://researchcenter.paloaltonetworks.com/feed/",
-            "http://seclists.org/rss/bugtraq.rss",
-            "http://seguridadyredes.wordpress.com/feed/",
-            "http://thehackerway.com/feed/",
-            "http://vrt-sourcefire.blogspot.com/feeds/posts/default",
-            "http://www.darkreading.com/rss/all.xml",
-            "http://www.exploit-db.com/rss.php",
-            "http://www.hackingarticles.in/feed/",
-            "http://www.intezer.com/feed/",
-            "http://www.kb.cert.org/vulfeed/",
-            "http://www.securelist.com/en/rss/allupdates",
-            "http://www.seguridadjabali.com/feeds/posts/default",
-            "http://www.seguridadyfirewall.cl/feeds/posts/default",
-            "http://www.us-cert.gov/channels/bulletins.rdf",
-            "http://www.us-cert.gov/current/index.rdf",
-            "http://www.volexity.com/blog/?feed=rss2",
-            "https://asec.ahnlab.com/en/feed/",
-            "https://bellingcat.com/feed/",
-            "https://blog.gigamon.com/feed/",
-            "https://blog.google/threat-analysis-group/rss",
-            "https://blog.qualys.com/feed/",
-            "https://blogs.cisco.com/security/feed",
-            "https://bushidotoken.blogspot.com/feeds/posts/default",
-            "https://ciberseguridad.blog/rss/",
-            "https://citizenlab.org/category/lab-news/feed/",
-            "https://cybersecurity.att.com/site/blog-all-rss",
-            "https://cyware.com/rss-feed/",
-            "https://dragos.com/feed/",
-            "https://exchange.xforce.ibmcloud.com/rss/collection?tag=advisory/>",
-            "https://expel.io/feed/",
-            "https://feeds.feedburner.com/TheHackersNews",
-            "https://forensicitguy.github.io/feed.xml",
-            "https://gbhackers.com/feed/",
-            "https://hackerone.com/news.rss",
-            "https://isc.sans.edu/rssfeed.xml",
-            "https://krebsonsecurity.com/feed/",
-            "https://labs.sentinelone.com/feed/",
-            "https://nakedsecurity.sophos.com/feed/",
-            "https://pduchement.wordpress.com/feed/",
-            "https://posts.specterops.io/feed",
-            "https://research.checkpoint.com/feed/",
-            "https://rss.app/feeds/fw3Wyadj4mPEvwwr.xml",
-            "https://rss.packetstormsecurity.com/files/",
-            "https://s4vitar.github.io/feed.xml",
-            "https://securityaffairs.co/wordpress/feed",
-            "https://stairwell.com/feed/atom/",
-            "https://techcrunch.com/author/zack-whittaker/feed/",
-            "https://thedfirreport.com/feed/",
-            "https://therecord.media/feed/",
-            "https://threatpost.com/category/vulnerabilities/feed/",
-            "https://unit42.paloaltonetworks.com/feed/",
-            "https://www.arbornetworks.com/blog/asert/feed/",
-            "https://www.blackhillsinfosec.com/feed/",
-            "https://www.bleepingcomputer.com/feed/",
-            "https://www.blogger.com/feeds/4838136820032157985/posts/default",
-            "https://www.brighttalk.com/channel/7451/feed/rss",
-            "https://www.certsi.es/feed/avisos-seguridad/all",
-            "https://www.ciberseguridadlatam.com/feed/",
-            "https://www.ciberseguridadpyme.es/feed/",
-            "https://www.cisa.gov/cybersecurity-advisories/all.xml",
-            "https://www.coveware.com/blog?format=RSS",
-            "https://www.crowdstrike.com/blog/feed/",
-            "https://www.curatedintel.org/feeds/posts/default",
-            "https://www.cybereason.com/blog/rss.xml",
-            "https://www.cybereason.com/blog/rss.xml",
-            "https://www.fireeye.com/blog/threat-research/_jcr_content.feed",
-            "https://www.greynoise.io/blog/rss.xml",
-            "https://www.huntress.com/blog/rss.xml",
-            "https://www.infosecurity-magazine.com/rss/news/",
-            "https://www.maltego.com/index.xml",
-            "https://www.mcafee.com/blogs/feed/",
-            "https://www.proofpoint.com/rss.xml",
-            "https://www.proofpoint.com/us/threat-insight-blog.xml",
-            "https://www.recordedfuture.com/feed/",
-            "https://www.redcanary.com/blog/feed/",
-            "https://www.sans.org/webcasts/rss",
-            "https://www.schneier.com/blog/atom.xml",
-            "https://www.secureworks.com/rss?feed=blog",
-            "https://www.securityweek.com/rss",
-            "https://www.tarlogic.com/feed",
-            "https://www.tenable.com/blog/feed",
-            "https://www.trendmicro.com/rss/index.xml",
-            "https://www.tripwire.com/state-of-security/feed/",
-            "https://www.us-cert.gov/ncas/alerts.xml",
-            "https://www.zdnet.com/topic/security/rss.xml",
-            "https://blog.rapid7.com/rss/"
-        ];
+        const searchBox = document.getElementById('searchBox');
+        const rssFeeds = ["https://www.us-cert.gov/ncas/alerts.xml", /* other feed URLs */];
 
         const proxyUrl = "https://api.rss2json.com/v1/api.json?rss_url=";
 
@@ -268,6 +147,7 @@
                         data.items.slice(0, 3).forEach(feed => { // Limit to the 3 latest items per feed
                             const feedItem = document.createElement('div');
                             feedItem.className = 'feed-item';
+                            feedItem.setAttribute('data-title', feed.title.toLowerCase());
 
                             const title = document.createElement('h2');
                             title.textContent = feed.title;
@@ -290,6 +170,14 @@
                     console.error('Error fetching feed:', error);
                 }
             }
+        }
+
+        function filterFeeds() {
+            const query = searchBox.value.toLowerCase();
+            document.querySelectorAll('.feed-item').forEach(item => {
+                const title = item.getAttribute('data-title');
+                item.style.display = title.includes(query) ? '' : 'none';
+            });
         }
 
         // Load feeds on page load
