@@ -363,8 +363,9 @@
 
         // Load feeds on page load
         fetchFeeds();
-
-        // Show the feed view by default
+         // Refresh feeds every 10 minutes (600,000 milliseconds)
+        setInterval(fetchFeeds, 600000);
+         // Show the feed view by default
         toggleView('feed');
     </script>
 </body>
