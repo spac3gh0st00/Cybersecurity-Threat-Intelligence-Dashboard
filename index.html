@@ -283,7 +283,7 @@ footer a { color: var(--cyan); text-decoration: none; }
   <div class="status-bar">
     <div class="s-item"><div class="s-dot live" id="statusDot"></div><span id="statusText">Initializing…</span></div>
     <div class="s-item">LOADED: <span class="s-val" id="loadedCnt">0</span></div>
-    <div class="s-item">FAILED: <span class="s-val" id="failedCnt">0</span></div>
+    <div class="s-item" title="Some feeds may be offline, rate-limited, or CORS-blocked — this is normal">UNAVAIL: <span id="failedCnt" style="color:var(--dim);font-weight:600">0</span></div>
     <div class="s-item">ARTICLES: <span class="s-val" id="artCnt">0</span></div>
     <div class="s-item">UPDATED: <span class="s-val" id="updatedAt">—</span></div>
   </div>
