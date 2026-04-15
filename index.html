@@ -7,6 +7,8 @@
   <title>CTI Radar — Threat Intelligence Dashboard</title>
   <meta name="theme-color" content="#070b14">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -205,9 +207,66 @@ h1 .accent { color: var(--green); }
 .chart-card.full { grid-column: 1 / -1; }
 .chart-card h3 { font-family: var(--display); font-size: 10px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; margin-bottom: 18px; }
 
-/* ── MAP ─────────────────────────────────────────────────── */
-.map-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.map-card iframe { width: 100%; height: 600px; border: none; display: block; }
+/* ── THREAT MAP ──────────────────────────────────────────── */
+.tmap-toolbar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+.tmap-btn {
+  padding:6px 14px; border-radius:5px; border:1px solid var(--border);
+  background:transparent; color:var(--dim); font-family:var(--mono);
+  font-size:11px; cursor:pointer; transition:all .2s; letter-spacing:.5px;
+}
+.tmap-btn.active { background:rgba(0,255,136,.1); border-color:var(--green); color:var(--green); font-weight:700; }
+.tmap-btn:hover:not(.active) { color:var(--text); border-color:var(--dim); }
+.tmap-layout { display:grid; grid-template-columns:260px 1fr; gap:14px; }
+.tmap-sidebar {
+  display:flex; flex-direction:column; gap:12px;
+  max-height:640px; overflow-y:auto;
+}
+.tmap-sidebar::-webkit-scrollbar { width:4px; }
+.tmap-sidebar::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+.tmap-panel {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:8px; padding:14px;
+}
+.tmap-panel h4 {
+  font-family:var(--display); font-size:9px; letter-spacing:2px;
+  color:var(--dim); text-transform:uppercase; margin-bottom:12px;
+}
+.tmap-stat-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid var(--border); font-size:11px; }
+.tmap-stat-row:last-child { border-bottom:none; }
+.tmap-stat-label { color:var(--dim); }
+.tmap-stat-val { font-weight:700; color:var(--text); }
+.tmap-bar-row { margin:5px 0; }
+.tmap-bar-label { display:flex; justify-content:space-between; font-size:10px; color:var(--text); margin-bottom:3px; }
+.tmap-bar-track { background:var(--border); border-radius:2px; height:4px; overflow:hidden; }
+.tmap-bar-fill { height:100%; border-radius:2px; transition:width .6s; }
+.tmap-kev-item { padding:7px 0; border-bottom:1px solid var(--border); }
+.tmap-kev-item:last-child { border-bottom:none; }
+.tmap-kev-id { font-size:10px; font-weight:700; color:var(--cyan); margin-bottom:2px; }
+.tmap-kev-vendor { font-size:10px; color:var(--text); }
+.tmap-kev-date { font-size:9px; color:var(--dim); }
+.tmap-map-wrap {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:8px; overflow:hidden; height:640px;
+}
+#leafletMap { width:100%; height:100%; }
+.tmap-loading { color:var(--dim); font-size:11px; padding:8px 0; }
+.tmap-error { color:var(--orange); font-size:10px; padding:4px 0; }
+/* leaflet dark theme overrides */
+.leaflet-popup-content-wrapper { background:var(--bg-card2); color:var(--text); border:1px solid var(--border); border-radius:6px; font-family:var(--mono); font-size:11px; }
+.leaflet-popup-tip { background:var(--bg-card2); }
+.leaflet-popup-close-button { color:var(--dim) !important; }
+.leaflet-control-zoom a { background:var(--bg-card) !important; color:var(--text) !important; border-color:var(--border) !important; }
+.leaflet-control-attribution { background:rgba(7,11,20,.8) !important; color:var(--dim) !important; font-size:9px; }
+.leaflet-control-attribution a { color:var(--dim) !important; }
+/* pulsing online dot */
+@keyframes mapPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+.pulse-marker { animation:mapPulse 2s infinite; }
+@media (max-width:800px) {
+  .tmap-layout { grid-template-columns:1fr; }
+  .tmap-sidebar { max-height:none; flex-direction:row; flex-wrap:wrap; }
+  .tmap-panel { flex:1; min-width:240px; }
+  .tmap-map-wrap { height:400px; }
+}
 
 /* ── LOAD MORE ───────────────────────────────────────────── */
 .more-wrap { text-align: center; margin-top: 20px; }
@@ -520,8 +579,36 @@ footer a { color: var(--cyan); text-decoration: none; }
   <!-- ─── MAP VIEW ───────────────────────────────────────────────────────── -->
 
   <div class="view" id="view-map">
-    <div class="map-card">
-      <iframe src="https://threatmap.checkpoint.com/" title="Live Cyber Threat Map" loading="lazy"></iframe>
+    <div class="tmap-toolbar">
+      <button class="tmap-btn active" id="layerC2Btn"  onclick="setMapLayer('c2',this)">⚠ C2 BOTNET SERVERS</button>
+      <button class="tmap-btn"        id="layerKevBtn" onclick="setMapLayer('kev',this)">🔴 CISA KEV</button>
+      <button class="tmap-btn" onclick="refreshMap()" style="margin-left:auto">↺ REFRESH</button>
+      <span id="mapStatus" style="font-size:10px;color:var(--dim)"></span>
+    </div>
+    <div class="tmap-layout">
+      <!-- sidebar -->
+      <div class="tmap-sidebar" id="tmapSidebar">
+        <div class="tmap-panel">
+          <h4>C2 Server Stats</h4>
+          <div id="c2Stats"><div class="tmap-loading">Loading…</div></div>
+        </div>
+        <div class="tmap-panel">
+          <h4>Top Countries</h4>
+          <div id="c2Countries"><div class="tmap-loading">Loading…</div></div>
+        </div>
+        <div class="tmap-panel">
+          <h4>Malware Families</h4>
+          <div id="c2Malware"><div class="tmap-loading">Loading…</div></div>
+        </div>
+        <div class="tmap-panel">
+          <h4>Recent KEV Additions</h4>
+          <div id="kevRecent"><div class="tmap-loading">Loading…</div></div>
+        </div>
+      </div>
+      <!-- map -->
+      <div class="tmap-map-wrap">
+        <div id="leafletMap"></div>
+      </div>
     </div>
   </div>
 
@@ -1188,7 +1275,252 @@ function switchView(v, btn) {
   if (v === 'cve' && !cvesLoaded) fetchCVEs(false);
 }
 
-function stripHtml(h) { const t = document.createElement('div'); t.innerHTML = h; return t.textContent || ''; }
+  if (v === 'cve' && !cvesLoaded) fetchCVEs(false);
+}
+
+// ─── THREAT MAP ───────────────────────────────────────────────────────────────
+const CENTROIDS = {
+  US:[37.09,-95.71], RU:[61.52,105.31], CN:[35.86,104.19], DE:[51.16,10.45],
+  FR:[46.23,2.21],   GB:[55.37,-3.43],  NL:[52.13,5.29],   UA:[48.37,31.16],
+  BR:[-14.24,-51.92],IN:[20.59,78.96],  KR:[35.91,127.76], JP:[36.20,138.25],
+  HK:[22.35,114.13], SG:[1.35,103.82],  CA:[56.13,-106.34],AU:[-25.27,133.77],
+  ID:[-0.78,113.92], IR:[32.42,53.68],  TR:[38.96,35.24],  IT:[41.87,12.56],
+  PL:[51.91,19.14],  RO:[45.94,24.96],  BG:[42.73,25.48],  CZ:[49.82,15.47],
+  LT:[55.17,23.88],  SE:[60.13,18.64],  CH:[46.82,8.23],   AT:[47.52,14.55],
+  BE:[50.50,4.47],   ES:[40.46,-3.74],  MX:[23.63,-102.55],AR:[-38.42,-63.62],
+  ZA:[-30.56,22.94], EG:[26.82,30.80],  NG:[9.08,8.67],    SA:[23.88,45.08],
+  TH:[15.87,100.99], VN:[14.06,108.27], MY:[4.21,101.97],  PK:[30.37,69.34],
+  TW:[23.69,120.96], LU:[49.82,6.12],   MD:[47.41,28.37],  BY:[53.71,27.95],
+  KZ:[48.01,66.92],  AZ:[40.14,47.57],  GE:[42.32,43.36],  RS:[44.01,21.00],
+  HU:[47.16,19.50],  SK:[48.66,19.69],  HR:[45.10,15.20],  CL:[-35.67,-71.54],
+};
+
+const MALWARE_COLORS = {
+  Emotet:'#ff3b5c', TrickBot:'#ff8c42', QakBot:'#ffd166', Dridex:'#c084fc',
+  AsyncRAT:'#00d4ff', Heodo:'#ff3b5c', BazarLoader:'#00ff88', IcedID:'#ff8c42',
+  default:'#5a7a9e',
+};
+
+const COUNTRY_NAMES = {
+  US:'United States', RU:'Russia', CN:'China', DE:'Germany', FR:'France',
+  GB:'United Kingdom', NL:'Netherlands', UA:'Ukraine', BR:'Brazil', IN:'India',
+  KR:'South Korea', JP:'Japan', HK:'Hong Kong', SG:'Singapore', CA:'Canada',
+  AU:'Australia', ID:'Indonesia', IR:'Iran', TR:'Turkey', IT:'Italy',
+  PL:'Poland', RO:'Romania', BG:'Bulgaria', CZ:'Czech Republic', LT:'Lithuania',
+  SE:'Sweden', CH:'Switzerland', AT:'Austria', BE:'Belgium', ES:'Spain',
+  MX:'Mexico', AR:'Argentina', ZA:'South Africa', EG:'Egypt', NG:'Nigeria',
+  SA:'Saudi Arabia', TH:'Thailand', VN:'Vietnam', MY:'Malaysia',
+};
+
+let leafletMap = null, mapLayer = 'c2', mapMarkerGroup = null;
+let feodoData = null, kevData = null, mapInitialized = false;
+
+function initMapIfNeeded() {
+  if (mapInitialized) return;
+  mapInitialized = true;
+  leafletMap = L.map('leafletMap', {
+    center:[25,15], zoom:2, minZoom:2,
+    maxBounds:[[-85,-200],[85,200]], worldCopyJump:false,
+  });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution:'© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CartoDB</a>',
+    subdomains:'abcd', maxZoom:12,
+  }).addTo(leafletMap);
+  mapMarkerGroup = L.layerGroup().addTo(leafletMap);
+  loadMapData();
+}
+
+async function loadMapData() {
+  setMapStatus('Fetching threat data…');
+  [feodoData, kevData] = await Promise.all([fetchFeodo(), fetchKEV()]);
+  renderMapLayer();
+  renderSidebar();
+  setMapStatus('');
+}
+
+async function fetchFeodo() {
+  const url = 'https://feodotracker.abuse.ch/downloads/ipblocklist_aggressive.json';
+  try {
+    const r = await fetch(url, {cache:'no-cache'});
+    if (r.ok) { const d = await r.json(); if (Array.isArray(d)) return d; }
+  } catch {}
+  try {
+    const r = await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));
+    const d = await r.json();
+    const p = JSON.parse(d.contents);
+    if (Array.isArray(p)) return p;
+  } catch {}
+  return null;
+}
+
+async function fetchKEV() {
+  try {
+    const r = await fetch('https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json',{cache:'no-cache'});
+    if (r.ok) return await r.json();
+  } catch {}
+  return null;
+}
+
+function setMapLayer(layer, btn) {
+  mapLayer = layer;
+  document.querySelectorAll('.tmap-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if (leafletMap) renderMapLayer();
+}
+
+function renderMapLayer() {
+  mapMarkerGroup && mapMarkerGroup.clearLayers();
+  if (mapLayer==='c2')  renderC2Layer();
+  if (mapLayer==='kev') renderKEVLayer();
+}
+
+function renderC2Layer() {
+  if (!feodoData) { setMapStatus('C2 data unavailable — Feodo Tracker may be rate-limiting, try refresh'); return; }
+  const byCountry = {};
+  feodoData.forEach(e => {
+    const cc = e.country||'XX';
+    if (!byCountry[cc]) byCountry[cc]={total:0,online:0,malware:{},entries:[]};
+    byCountry[cc].total++;
+    if (e.status==='online') byCountry[cc].online++;
+    const f=e.malware||'Unknown';
+    byCountry[cc].malware[f]=(byCountry[cc].malware[f]||0)+1;
+    byCountry[cc].entries.push(e);
+  });
+  const maxCount = Math.max(...Object.values(byCountry).map(v=>v.total));
+  Object.entries(byCountry).forEach(([cc,data]) => {
+    const latlng = CENTROIDS[cc]; if (!latlng) return;
+    const topMalware = Object.entries(data.malware).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Unknown';
+    const color = MALWARE_COLORS[topMalware]||MALWARE_COLORS.default;
+    const radius = 6 + Math.round(Math.log1p(data.total)/Math.log1p(maxCount)*22);
+    const pct = data.total>0?Math.round(data.online/data.total*100):0;
+    const families = Object.entries(data.malware).sort((a,b)=>b[1]-a[1]).slice(0,5)
+      .map(([k,v])=>`<span style="color:${MALWARE_COLORS[k]||'#5a7a9e'}">${k}</span>: ${v}`).join('<br>');
+    const m = L.circleMarker(latlng,{
+      radius, color, fillColor:color,
+      fillOpacity: data.online>0?0.55:0.2,
+      weight: data.online>0?2:1, opacity:0.9,
+    });
+    m.bindPopup(`<div style="min-width:190px;font-family:monospace">
+      <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:8px">${COUNTRY_NAMES[cc]||cc}</div>
+      <div style="display:flex;gap:14px;margin-bottom:8px">
+        <div><div style="font-size:9px;opacity:.6">TOTAL</div><div style="font-size:17px;font-weight:700">${data.total}</div></div>
+        <div><div style="font-size:9px;opacity:.6">ONLINE</div><div style="font-size:17px;font-weight:700;color:${data.online>0?'#ff3b5c':'#5a7a9e'}">${data.online}</div></div>
+        <div><div style="font-size:9px;opacity:.6">ONLINE%</div><div style="font-size:17px;font-weight:700">${pct}%</div></div>
+      </div>
+      <div style="font-size:9px;opacity:.6;margin-bottom:4px">MALWARE FAMILIES</div>
+      <div style="font-size:10px;line-height:1.9">${families}</div>
+      <div style="margin-top:8px;font-size:9px;opacity:.4">Source: Feodo Tracker / abuse.ch</div>
+    </div>`);
+    mapMarkerGroup.addLayer(m);
+  });
+}
+
+function renderKEVLayer() {
+  if (!kevData) { setMapStatus('CISA KEV unavailable'); return; }
+  const intlVendors = {
+    'Atlassian':'AU','SAP':'DE','Siemens':'DE','ABB':'CH',
+    'Hikvision':'CN','Dahua':'CN','ZTE':'CN','Huawei':'CN',
+    'Check Point':'IL','CyberArk':'IL',
+  };
+  const byCountry = {};
+  kevData.vulnerabilities.forEach(v => {
+    const cc = intlVendors[v.vendorProject]||'US';
+    if (!byCountry[cc]) byCountry[cc]=[];
+    byCountry[cc].push(v);
+  });
+  const jitter = ()=>(Math.random()-0.5)*4;
+  Object.entries(byCountry).forEach(([cc,vulns]) => {
+    const base = CENTROIDS[cc]; if (!base) return;
+    if (cc==='US') {
+      const recent90 = vulns.filter(v=>(Date.now()-new Date(v.dateAdded))/86400000<=90).length;
+      const m = L.circleMarker(base,{radius:32,color:'#ff3b5c',fillColor:'#ff3b5c',fillOpacity:.1,weight:2,dashArray:'5 4'});
+      m.bindPopup(`<div style="min-width:190px;font-family:monospace">
+        <div style="font-size:13px;font-weight:700;color:#ff3b5c;margin-bottom:8px">United States</div>
+        <div style="display:flex;gap:14px;margin-bottom:6px">
+          <div><div style="font-size:9px;opacity:.6">TOTAL KEVs</div><div style="font-size:17px;font-weight:700">${vulns.length}</div></div>
+          <div><div style="font-size:9px;opacity:.6">LAST 90d</div><div style="font-size:17px;font-weight:700;color:#ff3b5c">${recent90}</div></div>
+        </div>
+        <div style="font-size:9px;opacity:.5">Top vendors: Microsoft, Cisco, Adobe, Apple, Ivanti, Fortinet</div>
+      </div>`);
+      mapMarkerGroup.addLayer(m);
+    } else {
+      vulns.slice(0,30).forEach(v => {
+        const fresh = (Date.now()-new Date(v.dateAdded))/86400000<=30;
+        const m = L.circleMarker([base[0]+jitter(),base[1]+jitter()],{
+          radius:fresh?7:4,color:fresh?'#ff3b5c':'#5a7a9e',
+          fillColor:fresh?'#ff3b5c':'#5a7a9e',fillOpacity:.55,weight:1,
+        });
+        m.bindPopup(`<div style="min-width:190px;font-family:monospace">
+          <div style="color:#00d4ff;font-weight:700;margin-bottom:5px">${v.cveID}</div>
+          <div style="margin-bottom:4px"><b>${esc(v.vendorProject)}</b> — ${esc(v.product)}</div>
+          <div style="font-size:10px;opacity:.6;margin-bottom:6px">${esc((v.shortDescription||'').slice(0,140))}…</div>
+          <div style="font-size:9px;opacity:.5">Added: <b style="color:${fresh?'#ff3b5c':'inherit'}">${v.dateAdded}</b> · Due: ${v.dueDate}</div>
+        </div>`);
+        mapMarkerGroup.addLayer(m);
+      });
+    }
+  });
+}
+
+function renderSidebar() {
+  // C2 stats
+  const cs = document.getElementById('c2Stats');
+  if (!feodoData) { cs.innerHTML='<div class="tmap-error">Feodo Tracker unavailable — try refresh</div>'; }
+  else {
+    const online=feodoData.filter(e=>e.status==='online').length;
+    cs.innerHTML=[['TOTAL C2s',feodoData.length],['ONLINE NOW',`<span style="color:var(--red)">${online}</span>`],
+      ['OFFLINE',feodoData.length-online],['COUNTRIES',new Set(feodoData.map(e=>e.country)).size]]
+      .map(([l,v])=>`<div class="tmap-stat-row"><span class="tmap-stat-label">${l}</span><span class="tmap-stat-val">${v}</span></div>`).join('');
+  }
+  // Top countries
+  const cc = document.getElementById('c2Countries');
+  if (!feodoData) { cc.innerHTML='<div class="tmap-error">No data</div>'; }
+  else {
+    const cnts={}; feodoData.forEach(e=>{cnts[e.country]=(cnts[e.country]||0)+1;});
+    const sorted=Object.entries(cnts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const max=sorted[0]?.[1]||1;
+    cc.innerHTML=sorted.map(([c,n])=>`<div class="tmap-bar-row">
+      <div class="tmap-bar-label"><span>${COUNTRY_NAMES[c]||c}</span><span>${n}</span></div>
+      <div class="tmap-bar-track"><div class="tmap-bar-fill" style="width:${Math.round(n/max*100)}%;background:var(--red)"></div></div>
+    </div>`).join('');
+  }
+  // Malware families
+  const cm = document.getElementById('c2Malware');
+  if (!feodoData) { cm.innerHTML='<div class="tmap-error">No data</div>'; }
+  else {
+    const fams={}; feodoData.forEach(e=>{const f=e.malware||'Unknown';fams[f]=(fams[f]||0)+1;});
+    const sorted=Object.entries(fams).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const max=sorted[0]?.[1]||1;
+    cm.innerHTML=sorted.map(([f,n])=>`<div class="tmap-bar-row">
+      <div class="tmap-bar-label"><span style="color:${MALWARE_COLORS[f]||'var(--dim)'}">${f}</span><span>${n}</span></div>
+      <div class="tmap-bar-track"><div class="tmap-bar-fill" style="width:${Math.round(n/max*100)}%;background:${MALWARE_COLORS[f]||'var(--dim)'}"></div></div>
+    </div>`).join('');
+  }
+  // Recent KEV
+  const kr = document.getElementById('kevRecent');
+  if (!kevData) { kr.innerHTML='<div class="tmap-error">CISA KEV unavailable</div>'; }
+  else {
+    const recent=[...kevData.vulnerabilities].sort((a,b)=>new Date(b.dateAdded)-new Date(a.dateAdded)).slice(0,8);
+    kr.innerHTML=recent.map(v=>`<div class="tmap-kev-item">
+      <div class="tmap-kev-id">${v.cveID}</div>
+      <div class="tmap-kev-vendor">${esc(v.vendorProject)} — ${esc(v.product)}</div>
+      <div class="tmap-kev-date">Added ${v.dateAdded}</div>
+    </div>`).join('');
+  }
+}
+
+function setMapStatus(msg) { document.getElementById('mapStatus').textContent = msg; }
+async function refreshMap() {
+  feodoData=null; kevData=null;
+  mapMarkerGroup&&mapMarkerGroup.clearLayers();
+  await loadMapData();
+}
+
+// Patch switchView to also init map
+const _sv = switchView;
+switchView = function(v, btn) { _sv(v, btn); if(v==='map') initMapIfNeeded(); };
+
+
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(d) {
   if (!d || isNaN(d) || +d === 0) return '—';
