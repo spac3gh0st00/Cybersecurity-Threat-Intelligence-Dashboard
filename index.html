@@ -714,152 +714,89 @@ const seenUrls = new Set();
 const UNIQUE_FEEDS = FEEDS.filter(f => { if(seenUrls.has(f.url)) return false; seenUrls.add(f.url); return true; });
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-// Three free CORS proxies used in round-robin per-feed so no single service
-// gets hammered. Each feed is assigned a primary proxy by index, falls back
-// to the others. No API keys, no rate limits (at sane request rates).
-const SEVS    = ['low','low','medium','medium','medium','high','high','critical'];
-const BATCH   = 3;    // concurrent requests per wave
-const BATCH_DELAY = 400; // ms pause between batches
-const INITIAL = 24;  // feeds to load on startup (divisible by 3 = 8 batches)
-const TIMEOUT_MS = 12000;
+const SEVS = ['low','low','medium','medium','medium','high','high','critical'];
 
-// Three proxies — distributed round-robin so each gets ~1/3 of requests
-const PROXY_POOL = [
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://thingproxy.freeboard.io/fetch/${url}`,
-];
-
-// Returns proxies ordered so this feed's assigned proxy is tried first
-function proxiesFor(idx) {
-  const ordered = [...PROXY_POOL];
-  const primary = idx % PROXY_POOL.length;
-  return [ordered[primary], ...ordered.filter((_,i) => i !== primary)];
-}
-
-let articles     = [];
-let loadedCount  = 0;
-let failedCount  = 0;
-let currentCat   = 'all';
-let currentQ     = '';
-let chartsReady  = false;
-let countdown    = 600;
+let articles    = [];
+let loadedCount = 0;
+let failedCount = 0;
+let currentCat  = 'all';
+let currentQ    = '';
+let chartsReady = false;
+let countdown   = 600;
 let countdownId;
-const catCounts  = {gov:0,news:0,research:0,vendor:0,community:0};
-const loadedIdx  = new Set();
-
-// ─── XML PARSER — handles both RSS 2.0 and Atom ──────────────────────────────
-function parseRSSXML(xmlText) {
-  try {
-    const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
-    if (doc.querySelector('parsererror')) return [];
-
-    // Atom feed
-    const entries = [...doc.querySelectorAll('entry')];
-    if (entries.length) return entries.map(e => ({
-      title:   e.querySelector('title')?.textContent?.trim() || '',
-      description: e.querySelector('summary, content')?.textContent?.trim() || '',
-      link:    e.querySelector('link[rel="alternate"]')?.getAttribute('href')
-             || e.querySelector('link:not([rel="self"])')?.getAttribute('href')
-             || e.querySelector('link')?.textContent?.trim() || '#',
-      pubDate: e.querySelector('published, updated')?.textContent?.trim() || '',
-    }));
-
-    // RSS 2.0
-    const items = [...doc.querySelectorAll('item')];
-    return items.map(i => ({
-      title:   i.querySelector('title')?.textContent?.trim() || '',
-      description: i.querySelector('description')?.textContent?.trim()
-                || i.querySelector('encoded')?.textContent?.trim() || '',
-      link:    i.querySelector('link')?.textContent?.trim()
-             || i.querySelector('guid')?.textContent?.trim() || '#',
-      pubDate: i.querySelector('pubDate')?.textContent?.trim() || '',
-    }));
-  } catch { return []; }
-}
+const catCounts = {gov:0,news:0,research:0,vendor:0,community:0};
 
 // ─── BOOT ────────────────────────────────────────────────────────────────────
-// Set live source count everywhere it appears
 document.getElementById('stat-total').textContent      = UNIQUE_FEEDS.length;
 document.getElementById('stat-total-pill').textContent = UNIQUE_FEEDS.length;
 document.title = `CTI Radar — ${UNIQUE_FEEDS.length} Threat Intelligence Sources`;
-document.getElementById('moreWrap').style.display = 'none'; // hide until initial load done
+document.getElementById('moreWrap').style.display = 'none';
 renderSkeletons(8);
-loadWave(0, INITIAL).then(() => {
-  setStatus('LIVE — monitoring threat feeds', 'live');
-  syncHeader();
-  startCountdown();
-  if (UNIQUE_FEEDS.length > INITIAL) {
-    document.getElementById('moreWrap').style.display = 'block';
-  }
-});
+loadFeeds();
 
-// ─── FEED LOADING ────────────────────────────────────────────────────────────
-async function loadWave(from, to) {
-  const slice = UNIQUE_FEEDS.slice(from, to);
-  const total = UNIQUE_FEEDS.length;
+// ─── FEED LOADING — reads pre-fetched feeds.json built by GitHub Actions ─────
+async function loadFeeds() {
+  setStatus('Loading feeds…', 'warn');
+  try {
+    const r = await fetch('./feeds.json?t=' + Date.now());
+    if (!r.ok) throw new Error(r.status);
+    const data = await r.json();
 
-  for (let i = 0; i < slice.length; i += BATCH) {
-    const chunk = slice.slice(i, i + BATCH);
-    await Promise.all(chunk.map((feed, j) => fetchFeed(feed, from + i + j)));
-    if (i + BATCH < slice.length) await new Promise(r => setTimeout(r, BATCH_DELAY));
-    updateProgress((loadedIdx.size + failedCount) / total);
-    articles.sort((a,b) => b.date - a.date);
-    renderFeed();
-    syncHeader();
-  }
-}
+    if (!data.articles || !data.articles.length) throw new Error('empty');
 
-async function fetchFeed(feed, idx) {
-  if (loadedIdx.has(idx)) return;
-  let items = null;
-
-  for (const proxyFn of proxiesFor(idx)) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-      const r = await fetch(proxyFn(feed.url), { signal: controller.signal });
-      clearTimeout(timer);
-      if (!r.ok) continue;
-      const text = await r.text();
-      const parsed = parseRSSXML(text);
-      if (parsed.length) { items = parsed; break; }
-    } catch (e) { continue; }
-  }
-
-  if (items && items.length) {
-    items.slice(0, 3).forEach(item => {
-      if (!item.title) return;
+    data.articles.forEach(a => {
+      if (!a.title) return;
       articles.push({
-        title: item.title,
-        desc:  stripHtml(item.description || '').trim(),
-        link:  item.link || '#',
-        src:   feed.src,
-        cat:   feed.cat,
-        date:  item.pubDate ? new Date(item.pubDate) : new Date(0),
+        title: a.title,
+        desc:  a.desc || '',
+        link:  a.link || '#',
+        src:   a.src,
+        cat:   a.cat,
+        date:  a.date ? new Date(a.date) : new Date(0),
         sev:   SEVS[Math.floor(Math.random() * SEVS.length)],
       });
-      catCounts[feed.cat]++;
+      catCounts[a.cat] = (catCounts[a.cat] || 0) + 1;
     });
-    loadedIdx.add(idx);
-    loadedCount++;
-  } else {
-    failedCount++;
+
+    loadedCount = data.loaded  || new Set(data.articles.map(a=>a.src)).size;
+    failedCount = data.failed  || 0;
+    articles.sort((a,b) => b.date - a.date);
+    updateProgress(1);
+    renderFeed();
+    syncHeader();
+    if (data.updated) {
+      document.getElementById('updatedAt').textContent =
+        new Date(data.updated).toLocaleTimeString();
+    }
+    setStatus('LIVE — feeds updated by GitHub Actions', 'live');
+    startCountdown();
+  } catch(e) {
+    setStatus('feeds.json not found — see setup instructions below', 'err');
+    updateProgress(0);
+    document.getElementById('feedGrid').innerHTML = `
+      <div class="empty" style="grid-column:1/-1;line-height:2.2;text-align:left;max-width:560px;margin:0 auto">
+        <div style="font-size:20px;margin-bottom:16px">⚙️ One-time setup required</div>
+        <div style="color:var(--text);margin-bottom:10px">This dashboard uses GitHub Actions to fetch feeds server-side (no CORS issues, no rate limits). You just need to commit two small files:</div>
+        <div style="background:var(--bg-card2);border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;font-size:11px">
+          <div style="color:var(--cyan);margin-bottom:6px">1. Commit <b>.github/workflows/fetch-feeds.yml</b></div>
+          <div style="color:var(--cyan)">2. Commit <b>fetch_feeds.py</b></div>
+          <div style="color:var(--dim);margin-top:8px">Then go to your repo → Actions → "Fetch RSS Feeds" → Run workflow<br>Feeds will update automatically every 30 minutes after that.</div>
+        </div>
+        <div style="font-size:10px;color:var(--dim)">Both files are included in the download from Claude.</div>
+      </div>`;
   }
-
-  document.getElementById('loadedCnt').textContent = loadedCount;
-  document.getElementById('failedCnt').textContent = failedCount;
-  document.getElementById('artCnt').textContent    = articles.length;
 }
 
-async function loadMore() {
-  const btn = document.getElementById('moreBtn');
-  btn.textContent = 'LOADING…';
-  btn.disabled = true;
-  await loadWave(INITIAL, UNIQUE_FEEDS.length);
-  document.getElementById('moreWrap').style.display = 'none';
-  syncHeader();
+async function loadMore() {} // no-op — all feeds load at once from feeds.json
+
+async function doRefresh() {
+  articles = []; loadedCount = 0; failedCount = 0;
+  Object.keys(catCounts).forEach(k => catCounts[k] = 0);
+  chartsReady = false;
+  renderSkeletons(8);
+  await loadFeeds();
 }
+
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function renderFeed() {
@@ -1026,15 +963,10 @@ function startCountdown() {
 }
 async function doRefresh() {
   articles = []; loadedCount = 0; failedCount = 0;
-  loadedIdx.clear();
   Object.keys(catCounts).forEach(k => catCounts[k] = 0);
   chartsReady = false;
-  setStatus('Refreshing feeds…', 'warn');
   renderSkeletons(8);
-  await loadWave(0, INITIAL);
-  setStatus('LIVE — monitoring threat feeds', 'live');
-  syncHeader();
-  startCountdown();
+  await loadFeeds();
 }
 
 // ─── KEYWORD ALERTS ──────────────────────────────────────────────────────────
