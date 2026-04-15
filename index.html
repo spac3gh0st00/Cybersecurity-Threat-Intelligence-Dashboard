@@ -810,7 +810,7 @@ function renderFeed() {
       <div class="card-foot">
         <span class="card-date">${fmtDate(a.date)}</span>
         <div class="card-actions">
-          <button class="btn-bm ${bookmarks.has(a.link)?'saved':''}" onclick="toggleBookmark(${JSON.stringify(a.link)},${JSON.stringify(a.title)},event)" title="${bookmarks.has(a.link)?'Remove bookmark':'Bookmark'}">${bookmarks.has(a.link)?'★':'☆'}</button>
+          <button class="btn-bm ${bookmarks.has(a.link)?'saved':''}" data-link="${esc(a.link)}" onclick="toggleBookmark(this)" title="${bookmarks.has(a.link)?'Remove bookmark':'Save article'}">${bookmarks.has(a.link)?'★':'☆'}</button>
           <a class="card-link" href="${a.link}" target="_blank" rel="noopener noreferrer">READ MORE →</a>
         </div>
       </div>
@@ -982,9 +982,9 @@ function isKwMatch(a) {
 // ─── BOOKMARKS ───────────────────────────────────────────────────────────────
 const bookmarks = new Map(); // link → article obj
 
-function toggleBookmark(link, title, e) {
-  e.preventDefault();
-  e.stopPropagation();
+function toggleBookmark(btn) {
+  const link = btn.dataset.link;
+  if (!link) return;
   if (bookmarks.has(link)) {
     bookmarks.delete(link);
   } else {
@@ -1023,7 +1023,7 @@ function renderBookmarks() {
       <div class="card-foot">
         <span class="card-date">${fmtDate(a.date)}</span>
         <div class="card-actions">
-          <button class="btn-bm saved" onclick="toggleBookmark(${JSON.stringify(a.link)},${JSON.stringify(a.title)},event)" title="Remove bookmark">★</button>
+          <button class="btn-bm saved" data-link="${esc(a.link)}" onclick="toggleBookmark(this)" title="Remove bookmark">★</button>
           <a class="card-link" href="${a.link}" target="_blank" rel="noopener noreferrer">READ MORE →</a>
         </div>
       </div>
