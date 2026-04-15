@@ -714,10 +714,19 @@ const seenUrls = new Set();
 const UNIQUE_FEEDS = FEEDS.filter(f => { if(seenUrls.has(f.url)) return false; seenUrls.add(f.url); return true; });
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-const PROXY   = "https://api.rss2json.com/v1/api.json?rss_url=";
+// No rss2json — we parse RSS/Atom XML ourselves via two free CORS proxies.
+// This removes all third-party rate limits and caching delays.
 const SEVS    = ['low','low','medium','medium','medium','high','high','critical'];
-const BATCH   = 5;   // concurrent requests per wave — keeps rss2json free-tier happy
+const BATCH   = 4;    // concurrent requests per wave
+const BATCH_DELAY = 250; // ms pause between batches — keeps proxies happy
 const INITIAL = 30;  // feeds to load on startup
+const TIMEOUT_MS = 10000; // 10s per request
+
+// Two free CORS proxies — allorigins is tried first, corsproxy as fallback
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
 
 let articles     = [];
 let loadedCount  = 0;
@@ -730,11 +739,42 @@ let countdownId;
 const catCounts  = {gov:0,news:0,research:0,vendor:0,community:0};
 const loadedIdx  = new Set();
 
+// ─── XML PARSER — handles both RSS 2.0 and Atom ──────────────────────────────
+function parseRSSXML(xmlText) {
+  try {
+    const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+    if (doc.querySelector('parsererror')) return [];
+
+    // Atom feed
+    const entries = [...doc.querySelectorAll('entry')];
+    if (entries.length) return entries.map(e => ({
+      title:   e.querySelector('title')?.textContent?.trim() || '',
+      description: e.querySelector('summary, content')?.textContent?.trim() || '',
+      link:    e.querySelector('link[rel="alternate"]')?.getAttribute('href')
+             || e.querySelector('link:not([rel="self"])')?.getAttribute('href')
+             || e.querySelector('link')?.textContent?.trim() || '#',
+      pubDate: e.querySelector('published, updated')?.textContent?.trim() || '',
+    }));
+
+    // RSS 2.0
+    const items = [...doc.querySelectorAll('item')];
+    return items.map(i => ({
+      title:   i.querySelector('title')?.textContent?.trim() || '',
+      description: i.querySelector('description')?.textContent?.trim()
+                || i.querySelector('encoded')?.textContent?.trim() || '',
+      link:    i.querySelector('link')?.textContent?.trim()
+             || i.querySelector('guid')?.textContent?.trim() || '#',
+      pubDate: i.querySelector('pubDate')?.textContent?.trim() || '',
+    }));
+  } catch { return []; }
+}
+
 // ─── BOOT ────────────────────────────────────────────────────────────────────
 // Set live source count everywhere it appears
 document.getElementById('stat-total').textContent      = UNIQUE_FEEDS.length;
 document.getElementById('stat-total-pill').textContent = UNIQUE_FEEDS.length;
 document.title = `CTI Radar — ${UNIQUE_FEEDS.length} Threat Intelligence Sources`;
+document.getElementById('moreWrap').style.display = 'none'; // hide until initial load done
 renderSkeletons(8);
 loadWave(0, INITIAL).then(() => {
   setStatus('LIVE — monitoring threat feeds', 'live');
@@ -750,10 +790,10 @@ async function loadWave(from, to) {
   const slice = UNIQUE_FEEDS.slice(from, to);
   const total = UNIQUE_FEEDS.length;
 
-  // fire in mini-batches so we don't flood the proxy
   for (let i = 0; i < slice.length; i += BATCH) {
     const chunk = slice.slice(i, i + BATCH);
     await Promise.all(chunk.map((feed, j) => fetchFeed(feed, from + i + j)));
+    if (i + BATCH < slice.length) await new Promise(r => setTimeout(r, BATCH_DELAY));
     updateProgress((loadedIdx.size + failedCount) / total);
     articles.sort((a,b) => b.date - a.date);
     renderFeed();
@@ -763,27 +803,41 @@ async function loadWave(from, to) {
 
 async function fetchFeed(feed, idx) {
   if (loadedIdx.has(idx)) return;
-  try {
-    const r = await fetch(PROXY + encodeURIComponent(feed.url));
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    if (data.items && data.items.length) {
-      data.items.slice(0, 3).forEach(item => {
-        articles.push({
-          title: item.title || 'Untitled',
-          desc:  stripHtml(item.description || item.content || '').trim(),
-          link:  item.link || '#',
-          src:   feed.src,
-          cat:   feed.cat,
-          date:  item.pubDate ? new Date(item.pubDate) : new Date(0),
-          sev:   SEVS[Math.floor(Math.random() * SEVS.length)],
-        });
-        catCounts[feed.cat]++;
+  let items = null;
+
+  for (const proxyFn of CORS_PROXIES) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      const r = await fetch(proxyFn(feed.url), { signal: controller.signal });
+      clearTimeout(timer);
+      if (!r.ok) continue;
+      const text = await r.text();
+      const parsed = parseRSSXML(text);
+      if (parsed.length) { items = parsed; break; }
+    } catch (e) { continue; }
+  }
+
+  if (items && items.length) {
+    items.slice(0, 3).forEach(item => {
+      if (!item.title) return;
+      articles.push({
+        title: item.title,
+        desc:  stripHtml(item.description || '').trim(),
+        link:  item.link || '#',
+        src:   feed.src,
+        cat:   feed.cat,
+        date:  item.pubDate ? new Date(item.pubDate) : new Date(0),
+        sev:   SEVS[Math.floor(Math.random() * SEVS.length)],
       });
-      loadedIdx.add(idx);
-      loadedCount++;
-    } else { failedCount++; }
-  } catch { failedCount++; }
+      catCounts[feed.cat]++;
+    });
+    loadedIdx.add(idx);
+    loadedCount++;
+  } else {
+    failedCount++;
+  }
+
   document.getElementById('loadedCnt').textContent = loadedCount;
   document.getElementById('failedCnt').textContent = failedCount;
   document.getElementById('artCnt').textContent    = articles.length;
