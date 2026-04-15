@@ -100,7 +100,7 @@ HEADERS = {
     "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
 }
 TIMEOUT    = 15   # seconds per feed
-ARTICLES   = 3    # articles to keep per feed
+ARTICLES   = 7    # articles to keep per feed
 MAX_DESC   = 300  # characters
 
 
