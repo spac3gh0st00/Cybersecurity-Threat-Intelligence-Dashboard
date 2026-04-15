@@ -226,6 +226,139 @@ h1 .accent { color: var(--green); }
 .view { display: none; }
 .view.active { display: block; }
 
+/* ── KEYWORD ALERTS ──────────────────────────────────────── */
+.kw-row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.kw-input-wrap { display: flex; gap: 6px; }
+.kw-input {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 5px;
+  padding: 5px 10px; color: var(--text); font-family: var(--mono); font-size: 11px; outline: none;
+  width: 160px; transition: border-color .2s;
+}
+.kw-input:focus { border-color: var(--yellow); }
+.kw-input::placeholder { color: var(--dim); }
+.btn-kw-add {
+  background: rgba(255,209,102,.1); border: 1px solid rgba(255,209,102,.3);
+  color: var(--yellow); font-family: var(--mono); font-size: 11px;
+  padding: 5px 12px; border-radius: 5px; cursor: pointer; transition: all .2s;
+}
+.btn-kw-add:hover { background: rgba(255,209,102,.2); }
+.kw-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,209,102,.08); border: 1px solid rgba(255,209,102,.25);
+  color: var(--yellow); font-size: 10px; padding: 3px 8px; border-radius: 12px;
+}
+.kw-chip button { background: none; border: none; color: var(--yellow); cursor: pointer; font-size: 12px; line-height: 1; padding: 0; opacity: .7; }
+.kw-chip button:hover { opacity: 1; }
+.card.kw-match { border-color: var(--yellow) !important; box-shadow: 0 0 12px rgba(255,209,102,.15); }
+.kw-match-badge {
+  font-size: 9px; color: var(--yellow); background: rgba(255,209,102,.1);
+  border: 1px solid rgba(255,209,102,.25); border-radius: 3px;
+  padding: 2px 6px; margin-left: 6px; font-weight: 700; letter-spacing: .5px;
+}
+
+/* ── BOOKMARK BUTTON ─────────────────────────────────────── */
+.btn-bm {
+  background: none; border: none; cursor: pointer; font-size: 14px;
+  color: var(--dim); transition: color .2s; padding: 0; line-height: 1;
+}
+.btn-bm:hover, .btn-bm.saved { color: var(--cyan); }
+.card-actions { display: flex; align-items: center; gap: 8px; }
+
+/* ── EXPORT BUTTON ───────────────────────────────────────── */
+.btn-export {
+  background: rgba(0,212,255,.07); border: 1px solid rgba(0,212,255,.2);
+  color: var(--cyan); font-family: var(--mono); font-size: 11px;
+  padding: 7px 14px; border-radius: 6px; cursor: pointer; transition: all .2s; letter-spacing: .5px;
+}
+.btn-export:hover { background: rgba(0,212,255,.15); }
+
+/* ── IOC LOOKUP ──────────────────────────────────────────── */
+.ioc-wrap { max-width: 700px; margin: 0 auto; }
+.ioc-title { font-family: var(--display); font-size: 11px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; margin-bottom: 16px; }
+.ioc-input-row { display: flex; gap: 8px; margin-bottom: 20px; }
+.ioc-input {
+  flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px 16px; color: var(--text);
+  font-family: var(--mono); font-size: 13px; outline: none; transition: border-color .2s;
+}
+.ioc-input:focus { border-color: var(--green); }
+.ioc-input::placeholder { color: var(--dim); }
+.btn-ioc {
+  background: var(--green); border: none; color: #000; font-family: var(--mono);
+  font-weight: 700; font-size: 12px; padding: 0 20px; border-radius: 6px;
+  cursor: pointer; letter-spacing: 1px; transition: opacity .2s;
+}
+.btn-ioc:hover { opacity: .85; }
+.ioc-type-badge {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; padding: 4px 10px; border-radius: 4px; margin-bottom: 16px;
+}
+.ioc-links-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.ioc-link-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px; text-decoration: none;
+  transition: border-color .2s, transform .15s; display: block;
+}
+.ioc-link-card:hover { border-color: rgba(0,212,255,.4); transform: translateY(-2px); }
+.ioc-link-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.ioc-link-desc { font-size: 10px; color: var(--dim); line-height: 1.5; }
+.ioc-placeholder { color: var(--dim); font-size: 12px; line-height: 2; }
+.ioc-placeholder code { color: var(--green); background: rgba(0,255,136,.07); padding: 1px 5px; border-radius: 3px; }
+.ioc-history { margin-top: 24px; }
+.ioc-history h4 { font-size: 10px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; margin-bottom: 10px; }
+.ioc-hist-chip {
+  display: inline-block; background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-dim); font-size: 10px; padding: 3px 10px; border-radius: 4px;
+  margin: 3px; cursor: pointer; transition: border-color .2s;
+}
+.ioc-hist-chip:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* ── CVE WATCH ───────────────────────────────────────────── */
+.cve-toolbar { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+.cve-sev-btn {
+  padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border);
+  background: transparent; font-family: var(--mono); font-size: 10px;
+  cursor: pointer; transition: all .2s; color: var(--dim);
+}
+.cve-sev-btn.active.critical { color: var(--red);    border-color: var(--red);    background: rgba(255,59,92,.08); }
+.cve-sev-btn.active.high     { color: var(--orange); border-color: var(--orange); background: rgba(255,140,66,.08); }
+.cve-sev-btn.active.medium   { color: var(--yellow); border-color: var(--yellow); background: rgba(255,209,102,.07); }
+.cve-sev-btn:hover { color: var(--text); border-color: var(--dim); }
+.cve-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.cve-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; position: relative; overflow: hidden;
+  transition: border-color .2s;
+}
+.cve-card:hover { border-color: rgba(0,212,255,.3); }
+.cve-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.cve-card.critical::before { background: var(--red); }
+.cve-card.high::before     { background: var(--orange); }
+.cve-card.medium::before   { background: var(--yellow); }
+.cve-card.low::before      { background: var(--green); }
+.cve-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 8px; }
+.cve-id { font-family: var(--display); font-size: 11px; font-weight: 700; color: var(--cyan); letter-spacing: 1px; }
+.cvss-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 4px; white-space: nowrap;
+}
+.cvss-badge.critical { background: rgba(255,59,92,.15);  color: var(--red);    border: 1px solid rgba(255,59,92,.3); }
+.cvss-badge.high     { background: rgba(255,140,66,.12); color: var(--orange); border: 1px solid rgba(255,140,66,.3); }
+.cvss-badge.medium   { background: rgba(255,209,102,.1); color: var(--yellow); border: 1px solid rgba(255,209,102,.25); }
+.cvss-badge.low      { background: rgba(0,255,136,.07);  color: var(--green);  border: 1px solid rgba(0,255,136,.2); }
+.cve-desc { font-size: 11px; color: var(--dim); line-height: 1.6; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.cve-footer { display: flex; justify-content: space-between; align-items: center; font-size: 10px; }
+.cve-vendor { color: var(--text); font-weight: 600; }
+.cve-date { color: var(--dim); }
+.cve-link { color: var(--cyan); text-decoration: none; font-size: 10px; letter-spacing: .5px; }
+.cve-link:hover { color: var(--green); }
+.cve-loading { color: var(--dim); font-size: 12px; text-align: center; padding: 40px; }
+.cve-note { font-size: 10px; color: var(--dim); margin-bottom: 14px; }
+.cve-note a { color: var(--cyan); }
+
+/* ── BOOKMARKS ───────────────────────────────────────────── */
+.bm-empty { text-align: center; padding: 60px 20px; color: var(--dim); font-size: 13px; }
+.bm-empty span { display: block; font-size: 32px; margin-bottom: 12px; }
+
 /* ── FOOTER ──────────────────────────────────────────────── */
 footer { border-top: 1px solid var(--border); padding: 14px 40px; text-align: center; font-size: 10px; color: var(--dim); letter-spacing: 1px; }
 footer a { color: var(--cyan); text-decoration: none; }
@@ -274,6 +407,9 @@ footer a { color: var(--cyan); text-decoration: none; }
     <div class="tabs">
       <button class="tab active" onclick="switchView('feeds',this)">⬡ FEEDS</button>
       <button class="tab" onclick="switchView('analytics',this)">◈ ANALYTICS</button>
+      <button class="tab" onclick="switchView('cve',this)">⚑ CVE WATCH</button>
+      <button class="tab" onclick="switchView('ioc',this)">⚡ IOC LOOKUP</button>
+      <button class="tab" onclick="switchView('bookmarks',this)">🔖 SAVED <span id="bm-count" style="display:none;background:var(--cyan);color:#000;border-radius:10px;padding:1px 6px;font-size:9px;margin-left:3px">0</span></button>
       <button class="tab" onclick="switchView('map',this)">⊕ LIVE MAP</button>
     </div>
   </div>
@@ -303,6 +439,15 @@ footer a { color: var(--cyan); text-decoration: none; }
       <button class="cat-btn"        data-cat="vendor"    onclick="setCat('vendor',this)">🛡 VENDOR</button>
       <button class="cat-btn"        data-cat="community" onclick="setCat('community',this)">🌐 COMMUNITY</button>
     </div>
+    <!-- Keyword alerts -->
+    <div class="kw-row">
+      <div class="kw-input-wrap">
+        <input class="kw-input" id="kwInput" placeholder="Alert keyword…" onkeydown="if(event.key==='Enter')addKeyword()">
+        <button class="btn-kw-add" onclick="addKeyword()">+ ALERT</button>
+      </div>
+      <div id="kwChips"></div>
+      <button class="btn-export" onclick="exportCSV()" style="margin-left:auto">⬇ EXPORT CSV</button>
+    </div>
     <div class="feed-grid" id="feedGrid"></div>
     <div class="more-wrap" id="moreWrap" style="display:none">
       <button class="btn-more" id="moreBtn" onclick="loadMore()">LOAD REMAINING FEEDS ↓</button>
@@ -325,6 +470,50 @@ footer a { color: var(--cyan); text-decoration: none; }
         <h3>Threat Type Distribution (Estimated from article titles)</h3>
         <canvas id="threatChart"></canvas>
       </div>
+    </div>
+  </div>
+
+  <!-- ─── CVE WATCH VIEW ────────────────────────────────────────────────── -->
+
+  <div class="view" id="view-cve">
+    <div class="cve-note">Data from <a href="https://nvd.nist.gov" target="_blank">NVD / NIST</a>. Loads on first visit. For higher rate limits add a free API key at nvd.nist.gov/developers.</div>
+    <div class="cve-toolbar">
+      <button class="cve-sev-btn active critical" data-sev="CRITICAL" onclick="setCveSev('CRITICAL',this)">🔴 CRITICAL</button>
+      <button class="cve-sev-btn" data-sev="HIGH"     onclick="setCveSev('HIGH',this)">🟠 HIGH</button>
+      <button class="cve-sev-btn" data-sev="MEDIUM"   onclick="setCveSev('MEDIUM',this)">🟡 MEDIUM</button>
+      <button class="btn-more" onclick="fetchCVEs(true)" style="margin-left:auto">↺ REFRESH</button>
+    </div>
+    <div class="cve-grid" id="cveGrid"><div class="cve-loading">Loading CVEs from NVD…</div></div>
+  </div>
+
+  <!-- ─── IOC LOOKUP VIEW ────────────────────────────────────────────────── -->
+
+  <div class="view" id="view-ioc">
+    <div class="ioc-wrap">
+      <div class="ioc-title">// IOC / Indicator Lookup</div>
+      <div class="ioc-input-row">
+        <input class="ioc-input" id="iocInput" placeholder="Paste an IP, domain, hash (MD5/SHA1/SHA256), CVE, or URL…" onkeydown="if(event.key==='Enter')runIOC()">
+        <button class="btn-ioc" onclick="runIOC()">LOOKUP</button>
+      </div>
+      <div id="iocResult">
+        <div class="ioc-placeholder">
+          Supports automatic detection of:<br>
+          <code>IPv4 / IPv6</code> &nbsp; <code>Domain</code> &nbsp; <code>URL</code> &nbsp;
+          <code>MD5</code> &nbsp; <code>SHA1</code> &nbsp; <code>SHA256</code> &nbsp; <code>CVE-YYYY-NNNNN</code>
+        </div>
+      </div>
+      <div class="ioc-history" id="iocHistory" style="display:none">
+        <h4>Recent Lookups</h4>
+        <div id="iocHistChips"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── BOOKMARKS VIEW ─────────────────────────────────────────────────── -->
+
+  <div class="view" id="view-bookmarks">
+    <div class="feed-grid" id="bmGrid">
+      <div class="bm-empty" style="grid-column:1/-1"><span>🔖</span>No saved articles yet.<br>Click the ☆ on any article to save it here.</div>
     </div>
   </div>
 
@@ -542,16 +731,22 @@ function renderFeed() {
   }
 
   grid.innerHTML = filtered.map(a => `
-    <div class="card" data-sev="${a.sev}" data-cat="${a.cat}">
+    <div class="card" data-sev="${a.sev}" data-cat="${a.cat}"${isKwMatch(a) ? ' class="card kw-match"' : ''}>
       <div class="card-top">
         <span class="src-badge ${a.cat}">${esc(a.src)}</span>
-        <span class="sev-tag ${a.sev}">${a.sev}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${isKwMatch(a) ? '<span class="kw-match-badge">ALERT</span>' : ''}
+          <span class="sev-tag ${a.sev}">${a.sev}</span>
+        </div>
       </div>
       <div class="card-title">${esc(a.title)}</div>
       <div class="card-desc">${esc(a.desc.slice(0,200))}${a.desc.length>200?'…':''}</div>
       <div class="card-foot">
         <span class="card-date">${fmtDate(a.date)}</span>
-        <a class="card-link" href="${a.link}" target="_blank" rel="noopener noreferrer">READ MORE →</a>
+        <div class="card-actions">
+          <button class="btn-bm ${bookmarks.has(a.link)?'saved':''}" onclick="toggleBookmark(${JSON.stringify(a.link)},${JSON.stringify(a.title)},event)" title="${bookmarks.has(a.link)?'Remove bookmark':'Bookmark'}">${bookmarks.has(a.link)?'★':'☆'}</button>
+          <a class="card-link" href="${a.link}" target="_blank" rel="noopener noreferrer">READ MORE →</a>
+        </div>
       </div>
     </div>`).join('');
 }
@@ -577,15 +772,6 @@ function setCat(cat, btn) {
 function filterFeed() {
   currentQ = document.getElementById('searchInput').value.toLowerCase();
   renderFeed();
-}
-
-// ─── VIEWS ───────────────────────────────────────────────────────────────────
-function switchView(v, btn) {
-  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-  document.getElementById('view-' + v).classList.add('active');
-  btn.classList.add('active');
-  if (v === 'analytics' && !chartsReady) { setTimeout(drawCharts, 60); chartsReady = true; }
 }
 
 // ─── CHARTS ───────────────────────────────────────────────────────────────────
@@ -701,7 +887,307 @@ async function doRefresh() {
   startCountdown();
 }
 
-// ─── UTILS ───────────────────────────────────────────────────────────────────
+// ─── KEYWORD ALERTS ──────────────────────────────────────────────────────────
+let keywords = [];
+
+function addKeyword() {
+  const input = document.getElementById('kwInput');
+  const kw = input.value.trim().toLowerCase();
+  if (!kw || keywords.includes(kw)) { input.value = ''; return; }
+  keywords.push(kw);
+  input.value = '';
+  renderKwChips();
+  renderFeed();
+}
+
+function removeKeyword(kw) {
+  keywords = keywords.filter(k => k !== kw);
+  renderKwChips();
+  renderFeed();
+}
+
+function renderKwChips() {
+  document.getElementById('kwChips').innerHTML = keywords.map(kw => `
+    <span class="kw-chip">${esc(kw)}<button onclick="removeKeyword(${JSON.stringify(kw)})" title="Remove">×</button></span>
+  `).join('');
+}
+
+function isKwMatch(a) {
+  if (!keywords.length) return false;
+  const hay = (a.title + ' ' + a.desc).toLowerCase();
+  return keywords.some(kw => hay.includes(kw));
+}
+
+// ─── BOOKMARKS ───────────────────────────────────────────────────────────────
+const bookmarks = new Map(); // link → article obj
+
+function toggleBookmark(link, title, e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (bookmarks.has(link)) {
+    bookmarks.delete(link);
+  } else {
+    const art = articles.find(a => a.link === link);
+    if (art) bookmarks.set(link, art);
+  }
+  updateBmCount();
+  renderFeed();
+  renderBookmarks();
+}
+
+function updateBmCount() {
+  const el = document.getElementById('bm-count');
+  if (bookmarks.size > 0) {
+    el.textContent = bookmarks.size;
+    el.style.display = 'inline';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function renderBookmarks() {
+  const grid = document.getElementById('bmGrid');
+  if (!bookmarks.size) {
+    grid.innerHTML = '<div class="bm-empty" style="grid-column:1/-1"><span>🔖</span>No saved articles yet.<br>Click the ☆ on any article to save it here.</div>';
+    return;
+  }
+  grid.innerHTML = [...bookmarks.values()].map(a => `
+    <div class="card" data-sev="${a.sev}" data-cat="${a.cat}">
+      <div class="card-top">
+        <span class="src-badge ${a.cat}">${esc(a.src)}</span>
+        <span class="sev-tag ${a.sev}">${a.sev}</span>
+      </div>
+      <div class="card-title">${esc(a.title)}</div>
+      <div class="card-desc">${esc(a.desc.slice(0,200))}${a.desc.length>200?'…':''}</div>
+      <div class="card-foot">
+        <span class="card-date">${fmtDate(a.date)}</span>
+        <div class="card-actions">
+          <button class="btn-bm saved" onclick="toggleBookmark(${JSON.stringify(a.link)},${JSON.stringify(a.title)},event)" title="Remove bookmark">★</button>
+          <a class="card-link" href="${a.link}" target="_blank" rel="noopener noreferrer">READ MORE →</a>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ─── EXPORT CSV ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  const cat = currentCat;
+  const q   = currentQ;
+  const rows = articles.filter(a =>
+    (cat === 'all' || a.cat === cat) &&
+    (!q || a.title.toLowerCase().includes(q) || a.src.toLowerCase().includes(q))
+  );
+  const header = ['Title','Source','Category','Severity','Date','URL'];
+  const lines  = [header, ...rows.map(a => [
+    `"${a.title.replace(/"/g,'""')}"`,
+    `"${a.src}"`,
+    `"${a.cat}"`,
+    `"${a.sev}"`,
+    `"${fmtDate(a.date)}"`,
+    `"${a.link}"`
+  ])].map(r => r.join(','));
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `cti-radar-${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── CVE WATCH ───────────────────────────────────────────────────────────────
+let cveSev = 'CRITICAL';
+let cvesLoaded = false;
+
+function setCveSev(sev, btn) {
+  cveSev = sev;
+  document.querySelectorAll('.cve-sev-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  fetchCVEs(true);
+}
+
+async function fetchCVEs(force) {
+  if (!force && cvesLoaded) return;
+  cvesLoaded = true;
+  const grid = document.getElementById('cveGrid');
+  grid.innerHTML = '<div class="cve-loading">Fetching CVEs from NVD…</div>';
+  try {
+    const url = `https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=18&cvssV3Severity=${cveSev}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('NVD API error ' + r.status);
+    const data = await r.json();
+    const cves = data.vulnerabilities || [];
+    if (!cves.length) { grid.innerHTML = '<div class="cve-loading">No results.</div>'; return; }
+    grid.innerHTML = cves.map(v => {
+      const c   = v.cve;
+      const id  = c.id;
+      const desc = (c.descriptions?.find(d=>d.lang==='en')?.value || 'No description.').slice(0,200);
+      const metrics = c.metrics?.cvssMetricV31?.[0] || c.metrics?.cvssMetricV30?.[0] || c.metrics?.cvssMetricV2?.[0];
+      const score   = metrics?.cvssData?.baseScore ?? '—';
+      const sev     = (metrics?.cvssData?.baseSeverity || cveSev).toLowerCase();
+      const vendor  = c.weaknesses?.[0]?.description?.[0]?.value || '—';
+      const pubDate = c.published ? new Date(c.published).toLocaleDateString() : '—';
+      return `
+        <div class="cve-card ${sev}">
+          <div class="cve-top">
+            <span class="cve-id">${id}</span>
+            <span class="cvss-badge ${sev}">CVSS ${score}</span>
+          </div>
+          <div class="cve-desc">${esc(desc)}…</div>
+          <div class="cve-footer">
+            <span class="cve-vendor">${esc(vendor)}</span>
+            <span class="cve-date">${pubDate}</span>
+            <a class="cve-link" href="https://nvd.nist.gov/vuln/detail/${id}" target="_blank" rel="noopener">NVD →</a>
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    grid.innerHTML = `<div class="cve-loading">Failed to load CVEs. NVD may be rate-limiting — try again in 30s.<br><small>${e.message}</small></div>`;
+  }
+}
+
+// ─── IOC LOOKUP ───────────────────────────────────────────────────────────────
+const iocHistory = [];
+
+function detectIOC(v) {
+  v = v.trim();
+  if (/^CVE-\d{4}-\d+$/i.test(v))           return 'cve';
+  if (/^[0-9a-f]{64}$/i.test(v))             return 'sha256';
+  if (/^[0-9a-f]{40}$/i.test(v))             return 'sha1';
+  if (/^[0-9a-f]{32}$/i.test(v))             return 'md5';
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(v))     return 'ip';
+  if (/^[a-f0-9:]{3,}:[a-f0-9:]+$/i.test(v)) return 'ipv6';
+  if (/^https?:\/\//i.test(v))               return 'url';
+  if (/^[a-z0-9][a-z0-9\-\.]+\.[a-z]{2,}$/i.test(v)) return 'domain';
+  return 'unknown';
+}
+
+function iocLinks(type, val) {
+  const e = encodeURIComponent(val);
+  const links = {
+    ip: [
+      {name:'VirusTotal',    desc:'Multi-engine reputation scan',         url:`https://www.virustotal.com/gui/ip-address/${val}`},
+      {name:'Shodan',        desc:'Exposed services & ports',             url:`https://www.shodan.io/host/${val}`},
+      {name:'AbuseIPDB',     desc:'Abuse reports & threat score',         url:`https://www.abuseipdb.com/check/${val}`},
+      {name:'GreyNoise',     desc:'Internet scanner / noise context',     url:`https://viz.greynoise.io/ip/${val}`},
+      {name:'OTX AlienVault',desc:'Threat intel pulses',                  url:`https://otx.alienvault.com/indicator/ip/${val}`},
+      {name:'IPInfo',        desc:'Geolocation & ASN lookup',             url:`https://ipinfo.io/${val}`},
+      {name:'Censys',        desc:'Internet-wide scan data',              url:`https://search.censys.io/hosts/${val}`},
+      {name:'MXToolbox',     desc:'Blacklist / DNS check',                url:`https://mxtoolbox.com/blacklists.aspx?d=${val}`},
+    ],
+    domain: [
+      {name:'VirusTotal',    desc:'Multi-engine reputation scan',         url:`https://www.virustotal.com/gui/domain/${val}`},
+      {name:'URLScan.io',    desc:'Browser-based sandbox screenshot',     url:`https://urlscan.io/search/#domain:${e}`},
+      {name:'Shodan',        desc:'Exposed services on this domain',      url:`https://www.shodan.io/search?query=hostname:${e}`},
+      {name:'OTX AlienVault',desc:'Threat intel pulses',                  url:`https://otx.alienvault.com/indicator/domain/${val}`},
+      {name:'URLVoid',       desc:'Blacklist & reputation check',         url:`https://www.urlvoid.com/scan/${val}`},
+      {name:'Whois',         desc:'Registration & ownership info',        url:`https://www.whois.com/whois/${val}`},
+      {name:'SecurityTrails',desc:'DNS history & subdomains',             url:`https://securitytrails.com/domain/${val}/dns`},
+    ],
+    url: [
+      {name:'VirusTotal',    desc:'Multi-engine URL scan',                url:`https://www.virustotal.com/gui/url/${btoa(val)}`},
+      {name:'URLScan.io',    desc:'Live browser scan & screenshot',       url:`https://urlscan.io/search/#page.url:${e}`},
+      {name:'URLVoid',       desc:'Blacklist reputation check',           url:`https://www.urlvoid.com/scan/${e}`},
+      {name:'OTX AlienVault',desc:'Threat intel pulses',                  url:`https://otx.alienvault.com/indicator/url/${e}`},
+      {name:'Google SafeBrowsing', desc:'Google phishing/malware check',  url:`https://transparencyreport.google.com/safe-browsing/search?url=${e}`},
+    ],
+    sha256: [
+      {name:'VirusTotal',    desc:'Multi-engine hash lookup',             url:`https://www.virustotal.com/gui/file/${val}`},
+      {name:'MalwareBazaar', desc:'Malware sample database',              url:`https://bazaar.abuse.ch/browse.php?search=sha256_hash:${val}`},
+      {name:'Hybrid Analysis',desc:'Behavioral sandbox report',           url:`https://www.hybrid-analysis.com/search?query=${val}`},
+      {name:'OTX AlienVault',desc:'Threat intel pulses',                  url:`https://otx.alienvault.com/indicator/file/${val}`},
+      {name:'Triage',        desc:'Automated malware sandbox',            url:`https://tria.ge/s?q=${val}`},
+    ],
+    sha1: [
+      {name:'VirusTotal',    desc:'Multi-engine hash lookup',             url:`https://www.virustotal.com/gui/file/${val}`},
+      {name:'MalwareBazaar', desc:'Malware sample database',              url:`https://bazaar.abuse.ch/browse.php?search=sha1_hash:${val}`},
+      {name:'OTX AlienVault',desc:'Threat intel pulses',                  url:`https://otx.alienvault.com/indicator/file/${val}`},
+    ],
+    md5: [
+      {name:'VirusTotal',    desc:'Multi-engine hash lookup',             url:`https://www.virustotal.com/gui/file/${val}`},
+      {name:'MalwareBazaar', desc:'Malware sample database',              url:`https://bazaar.abuse.ch/browse.php?search=md5_hash:${val}`},
+      {name:'Hybrid Analysis',desc:'Behavioral sandbox report',           url:`https://www.hybrid-analysis.com/search?query=${val}`},
+    ],
+    cve: [
+      {name:'NVD / NIST',    desc:'Official CVE details & CVSS',         url:`https://nvd.nist.gov/vuln/detail/${val}`},
+      {name:'MITRE CVE',     desc:'CVE list entry',                       url:`https://cve.mitre.org/cgi-bin/cvename.cgi?name=${val}`},
+      {name:'Exploit-DB',    desc:'Search for public exploits',           url:`https://www.exploit-db.com/search?cve=${val.replace('CVE-','')}`},
+      {name:'GitHub Advisory',desc:'GitHub security advisory DB',         url:`https://github.com/advisories?query=${val}`},
+      {name:'Vulhub',        desc:'Docker-based PoC environments',        url:`https://vulhub.org/#/search?q=${val}`},
+      {name:'GreyNoise',     desc:'Exploitation activity in the wild',    url:`https://viz.greynoise.io/tags?q=${val}`},
+    ],
+    ipv6: [
+      {name:'VirusTotal',    desc:'Multi-engine reputation scan',         url:`https://www.virustotal.com/gui/ip-address/${val}`},
+      {name:'OTX AlienVault',desc:'Threat intel pulses',                  url:`https://otx.alienvault.com/indicator/ip/${val}`},
+      {name:'IPInfo',        desc:'Geolocation & ASN lookup',             url:`https://ipinfo.io/${val}`},
+    ],
+  };
+  return links[type] || [];
+}
+
+const typeLabels = {
+  ip:'IPv4 Address', ipv6:'IPv6 Address', domain:'Domain',
+  url:'URL', md5:'MD5 Hash', sha1:'SHA-1 Hash', sha256:'SHA-256 Hash',
+  cve:'CVE Identifier', unknown:'Unknown Type'
+};
+const typeBadgeColors = {
+  ip:'rgba(0,212,255,.1);color:var(--cyan);border:1px solid rgba(0,212,255,.3)',
+  ipv6:'rgba(0,212,255,.1);color:var(--cyan);border:1px solid rgba(0,212,255,.3)',
+  domain:'rgba(0,255,136,.07);color:var(--green);border:1px solid rgba(0,255,136,.2)',
+  url:'rgba(0,255,136,.07);color:var(--green);border:1px solid rgba(0,255,136,.2)',
+  md5:'rgba(255,140,66,.1);color:var(--orange);border:1px solid rgba(255,140,66,.3)',
+  sha1:'rgba(255,140,66,.1);color:var(--orange);border:1px solid rgba(255,140,66,.3)',
+  sha256:'rgba(255,140,66,.1);color:var(--orange);border:1px solid rgba(255,140,66,.3)',
+  cve:'rgba(255,59,92,.1);color:var(--red);border:1px solid rgba(255,59,92,.3)',
+  unknown:'rgba(90,122,158,.2);color:var(--dim);border:1px solid var(--border)',
+};
+
+function runIOC() {
+  const val = document.getElementById('iocInput').value.trim();
+  if (!val) return;
+  const type  = detectIOC(val);
+  const links = iocLinks(type, val);
+
+  // add to history
+  if (!iocHistory.includes(val)) { iocHistory.unshift(val); if(iocHistory.length>8) iocHistory.pop(); }
+  renderIOCHistory();
+
+  const bStyle = typeBadgeColors[type] || typeBadgeColors.unknown;
+  document.getElementById('iocResult').innerHTML = `
+    <div class="ioc-type-badge" style="background:${bStyle}">${typeLabels[type] || 'Unknown'}</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:14px;word-break:break-all;">${esc(val)}</div>
+    ${links.length ? `<div class="ioc-links-grid">
+      ${links.map(l => `
+        <a class="ioc-link-card" href="${l.url}" target="_blank" rel="noopener noreferrer">
+          <div class="ioc-link-name">${esc(l.name)}</div>
+          <div class="ioc-link-desc">${esc(l.desc)}</div>
+        </a>`).join('')}
+    </div>` : '<div class="ioc-placeholder">No lookup services available for this type.</div>'}
+  `;
+}
+
+function renderIOCHistory() {
+  const wrap = document.getElementById('iocHistory');
+  const chips = document.getElementById('iocHistChips');
+  if (!iocHistory.length) { wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+  chips.innerHTML = iocHistory.map(h =>
+    `<span class="ioc-hist-chip" onclick="document.getElementById('iocInput').value=${JSON.stringify(h)};runIOC()">${esc(h)}</span>`
+  ).join('');
+}
+
+// hook CVE fetch to tab switch
+const _origSwitch = switchView;
+// patch switchView to trigger CVE load on first visit
+function switchView(v, btn) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  btn.classList.add('active');
+  if (v === 'analytics' && !chartsReady) { setTimeout(drawCharts, 60); chartsReady = true; }
+  if (v === 'cve' && !cvesLoaded) fetchCVEs(false);
+}
+
 function stripHtml(h) { const t = document.createElement('div'); t.innerHTML = h; return t.textContent || ''; }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(d) {
@@ -715,4 +1201,4 @@ function fmtDate(d) {
 </script>
 
 </body>
-</html> 
+</html>
