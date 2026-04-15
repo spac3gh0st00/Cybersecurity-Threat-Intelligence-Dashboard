@@ -758,6 +758,10 @@ async function loadFeeds() {
       catCounts[a.cat] = (catCounts[a.cat] || 0) + 1;
     });
 
+    // Store map data from the same JSON — no extra fetches needed
+    if (data.feodo && data.feodo.length) feodoData = data.feodo;
+    if (data.kev   && data.kev.vulnerabilities) kevData = data.kev;
+
     loadedCount = data.loaded  || new Set(data.articles.map(a=>a.src)).size;
     failedCount = data.failed  || 0;
     articles.sort((a,b) => b.date - a.date);
@@ -1323,35 +1327,15 @@ function initMapIfNeeded() {
 }
 
 async function loadMapData() {
-  setMapStatus('Fetching threat data…');
-  [feodoData, kevData] = await Promise.all([fetchFeodo(), fetchKEV()]);
+  setMapStatus('Loading map data…');
+  // Data already loaded from feeds.json — just render it
   renderMapLayer();
   renderSidebar();
   setMapStatus('');
 }
 
-async function fetchFeodo() {
-  const url = 'https://feodotracker.abuse.ch/downloads/ipblocklist_aggressive.json';
-  try {
-    const r = await fetch(url, {cache:'no-cache'});
-    if (r.ok) { const d = await r.json(); if (Array.isArray(d)) return d; }
-  } catch {}
-  try {
-    const r = await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));
-    const d = await r.json();
-    const p = JSON.parse(d.contents);
-    if (Array.isArray(p)) return p;
-  } catch {}
-  return null;
-}
-
-async function fetchKEV() {
-  try {
-    const r = await fetch('https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json',{cache:'no-cache'});
-    if (r.ok) return await r.json();
-  } catch {}
-  return null;
-}
+async function fetchFeodo() { return feodoData; }
+async function fetchKEV()   { return kevData; }
 
 function setMapLayer(layer, btn) {
   mapLayer = layer;
@@ -1502,10 +1486,11 @@ function renderSidebar() {
 }
 
 function setMapStatus(msg) { document.getElementById('mapStatus').textContent = msg; }
-async function refreshMap() {
-  feodoData=null; kevData=null;
-  mapMarkerGroup&&mapMarkerGroup.clearLayers();
-  await loadMapData();
+function refreshMap() {
+  if (!leafletMap) return;
+  mapMarkerGroup && mapMarkerGroup.clearLayers();
+  renderMapLayer();
+  renderSidebar();
 }
 
 // Patch switchView to also init map
