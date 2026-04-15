@@ -1,372 +1,694 @@
 <!DOCTYPE html>
+
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌐👾Threat Intelligence Dashboard 👾🌐</title>
-    <meta name="theme-color" content="#1c1c1c">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <meta name="donate" content="Ethereum Address: 0xFC55ca839f38Cad5418CF9BA842b4Fb601cB4765">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #1c1c1c;
-            color: #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CTI Radar — Threat Intelligence Dashboard</title>
+  <meta name="theme-color" content="#070b14">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #070b14;
+      --bg-card:  #0d1424;
+      --bg-card2: #111827;
+      --border:   #1e2d4a;
+      --green:    #00ff88;
+      --cyan:     #00d4ff;
+      --red:      #ff3b5c;
+      --orange:   #ff8c42;
+      --yellow:   #ffd166;
+      --purple:   #c084fc;
+      --text:     #c8d8f0;
+      --dim:      #4a6580;
+      --mono:     'JetBrains Mono', 'Courier New', monospace;
+      --display:  'Orbitron', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        header {
-            background-color: #444;
-            padding: 20px;
-            text-align: center;
-            width: 100%;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
+```
+body {
+  font-family: var(--mono);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
 
-        header h1 {
-            margin: 0;
-            font-size: 2.5em;
-            color: #ff3e3e;
-        }
+/* scanline overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.04) 2px, rgba(0,0,0,.04) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
 
-        header .emoji {
-            font-size: 5rem;
-        }
+/* ── HEADER ─────────────────────────────────────────────── */
+header {
+  position: relative;
+  padding: 28px 40px 22px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(0,212,255,.05) 0%, transparent 100%);
+  overflow: hidden;
+}
+header::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--green), transparent);
+}
+.hdr-grid {
+  max-width: 1400px; margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.hdr-label { font-size: 10px; letter-spacing: 4px; color: var(--cyan); text-transform: uppercase; margin-bottom: 6px; }
+h1 {
+  font-family: var(--display);
+  font-size: clamp(1.3rem, 4vw, 2.2rem);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(0,212,255,.4);
+  line-height: 1.1;
+}
+h1 .accent { color: var(--green); }
+.hdr-sub { margin-top: 6px; font-size: 11px; color: var(--dim); letter-spacing: .8px; }
+.hdr-pills { display: flex; flex-direction: column; gap: 6px; text-align: right; }
+.pill {
+  background: rgba(0,255,136,.07);
+  border: 1px solid rgba(0,255,136,.18);
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 10px; color: var(--green); letter-spacing: 1px;
+}
+.pill strong { color: #fff; font-weight: 700; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.cursor { display: inline-block; width: 3px; height: .9em; background: var(--cyan); vertical-align: middle; animation: blink 1.1s infinite; margin-left: 2px; }
 
-        .container {
-            margin-top: 20px;
-            width: 90%;
-            max-width: 1200px;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            background-color: #2c2c2c;
-        }
+/* ── MAIN WRAPPER ────────────────────────────────────────── */
+.wrap { max-width: 1400px; margin: 0 auto; padding: 22px 40px 48px; }
 
-        .feed-container, .chart-container, .map-container {
-            display: none;
-        }
+/* ── TOOLBAR ─────────────────────────────────────────────── */
+.toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+.search-wrap { position: relative; flex: 1; min-width: 180px; }
+.search-wrap::before { content: '⌕'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--dim); font-size: 16px; pointer-events: none; }
+.search-wrap input {
+  width: 100%;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  padding: 9px 14px 9px 36px;
+  color: var(--text); font-family: var(--mono); font-size: 12px; outline: none;
+  transition: border-color .2s;
+}
+.search-wrap input:focus { border-color: var(--cyan); }
+.search-wrap input::placeholder { color: var(--dim); }
+.tabs {
+  display: flex; gap: 3px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 3px;
+}
+.tab {
+  padding: 7px 15px; border: none; border-radius: 4px;
+  background: transparent; color: var(--dim);
+  font-family: var(--mono); font-size: 11px; cursor: pointer; transition: all .2s; letter-spacing: .5px;
+}
+.tab.active { background: var(--green); color: #000; font-weight: 700; }
+.tab:hover:not(.active) { background: var(--border); color: var(--text); }
 
-        .feed-item {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #555;
-        }
+/* ── STATUS BAR ──────────────────────────────────────────── */
+.status-bar {
+  display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 9px 16px; margin-bottom: 14px; font-size: 11px;
+}
+.s-item { display: flex; align-items: center; gap: 7px; color: var(--dim); }
+.s-dot { width: 6px; height: 6px; border-radius: 50%; }
+.s-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+.s-dot.warn { background: var(--orange); }
+.s-dot.err  { background: var(--red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+.s-val { color: var(--text); font-weight: 600; }
 
-        .feed-item h2 {
-            margin: 0;
-            font-size: 1.8em;
-            color: #ff6f61;
-        }
+/* ── PROGRESS ────────────────────────────────────────────── */
+.progress { height: 2px; background: var(--border); border-radius: 2px; margin-bottom: 18px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--green)); transition: width .4s; }
 
-        .feed-item p {
-            margin: 10px 0;
-            font-size: 1em;
-            color: #ccc;
-        }
+/* ── CAT FILTERS ─────────────────────────────────────────── */
+.cat-row { display: flex; gap: 7px; margin-bottom: 18px; flex-wrap: wrap; }
+.cat-btn {
+  padding: 4px 13px; border-radius: 20px; border: 1px solid var(--border);
+  background: transparent; color: var(--dim);
+  font-family: var(--mono); font-size: 10px; cursor: pointer; transition: all .2s; letter-spacing: .5px;
+}
+.cat-btn:hover { color: var(--text); border-color: var(--dim); }
+.cat-btn.active { font-weight: 700; border-color: currentColor; }
+.cat-btn[data-cat=all].active    { color: #fff; background: rgba(255,255,255,.07); border-color: #fff; }
+.cat-btn[data-cat=gov].active    { color: var(--cyan);   background: rgba(0,212,255,.08); }
+.cat-btn[data-cat=news].active   { color: var(--orange); background: rgba(255,140,66,.08); }
+.cat-btn[data-cat=research].active { color: var(--green); background: rgba(0,255,136,.06); }
+.cat-btn[data-cat=vendor].active { color: var(--yellow); background: rgba(255,209,102,.07); }
+.cat-btn[data-cat=community].active { color: var(--purple); background: rgba(192,132,252,.07); }
 
-        .feed-item a {
-            color: #61dafb;
-            text-decoration: none;
-            font-weight: bold;
-        }
+/* ── FEED GRID ───────────────────────────────────────────── */
+.feed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
 
-        .feed-item a:hover {
-            text-decoration: underline;
-        }
+/* ── FEED CARD ───────────────────────────────────────────── */
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; position: relative; overflow: hidden;
+  transition: border-color .2s, transform .2s;
+}
+.card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.card[data-sev=critical]::before { background: var(--red); }
+.card[data-sev=high]::before     { background: var(--orange); }
+.card[data-sev=medium]::before   { background: var(--yellow); }
+.card[data-sev=low]::before      { background: var(--green); }
+.card:hover { border-color: rgba(0,212,255,.35); transform: translateY(-2px); }
 
-        .button-container {
-            margin: 20px 0;
-            text-align: center;
-        }
+.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+.src-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 3px; border: 1px solid currentColor;
+}
+.src-badge.gov       { color: var(--cyan);   background: rgba(0,212,255,.08); border-color: rgba(0,212,255,.25); }
+.src-badge.news      { color: var(--orange); background: rgba(255,140,66,.08); border-color: rgba(255,140,66,.25); }
+.src-badge.research  { color: var(--green);  background: rgba(0,255,136,.06); border-color: rgba(0,255,136,.2); }
+.src-badge.vendor    { color: var(--yellow); background: rgba(255,209,102,.06); border-color: rgba(255,209,102,.2); }
+.src-badge.community { color: var(--purple); background: rgba(192,132,252,.06); border-color: rgba(192,132,252,.2); }
 
-        .button-container button {
-            padding: 10px 20px;
-            margin: 0 10px;
-            border: none;
-            border-radius: 5px;
-            background-color: #ff6f61;
-            color: white;
-            font-size: 1em;
-            cursor: pointer;
-        }
+.sev-tag {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 3px;
+}
+.sev-tag.critical { color: var(--red);    background: rgba(255,59,92,.12);  border: 1px solid rgba(255,59,92,.3); }
+.sev-tag.high     { color: var(--orange); background: rgba(255,140,66,.1);  border: 1px solid rgba(255,140,66,.3); }
+.sev-tag.medium   { color: var(--yellow); background: rgba(255,209,102,.09);border: 1px solid rgba(255,209,102,.25); }
+.sev-tag.low      { color: var(--green);  background: rgba(0,255,136,.07);  border: 1px solid rgba(0,255,136,.2); }
 
-        .button-container button:hover {
-            background-color: #ff3e3e;
-        }
+.card-title { font-size: 12px; font-weight: 600; color: #e0ecff; margin-bottom: 7px; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-desc  { font-size: 11px; color: var(--dim); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 11px; }
+.card-foot  { display: flex; justify-content: space-between; align-items: center; }
+.card-date  { font-size: 10px; color: var(--dim); }
+.card-link  { font-size: 10px; color: var(--cyan); text-decoration: none; letter-spacing: .5px; transition: color .2s; }
+.card-link:hover { color: var(--green); }
 
-        footer {
-            margin-top: 30px;
-            padding: 10px;
-            font-size: 1.2em;
-            color: #777;
-            text-align: center;
-        }
+/* ── SKELETON ────────────────────────────────────────────── */
+.skel-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 9px; }
+.skel { border-radius: 3px; background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card2) 50%, var(--bg-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-        .map-container iframe {
-            width: 100%;
-            height: 600px;
-            border: none;
-            border-radius: 8px;
-        }
-    </style>
+/* ── ANALYTICS ───────────────────────────────────────────── */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 22px; }
+.chart-card.full { grid-column: 1 / -1; }
+.chart-card h3 { font-family: var(--display); font-size: 10px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; margin-bottom: 18px; }
+
+/* ── MAP ─────────────────────────────────────────────────── */
+.map-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.map-card iframe { width: 100%; height: 600px; border: none; display: block; }
+
+/* ── LOAD MORE ───────────────────────────────────────────── */
+.more-wrap { text-align: center; margin-top: 20px; }
+.btn-more {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--dim); font-family: var(--mono); font-size: 11px;
+  padding: 9px 26px; border-radius: 6px; cursor: pointer; transition: all .2s; letter-spacing: 1px;
+}
+.btn-more:hover { border-color: var(--cyan); color: var(--cyan); }
+.btn-more:disabled { opacity: .45; cursor: default; }
+
+/* ── EMPTY STATE ─────────────────────────────────────────── */
+.empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--dim); font-size: 13px; }
+
+/* ── VIEWS ───────────────────────────────────────────────── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── FOOTER ──────────────────────────────────────────────── */
+footer { border-top: 1px solid var(--border); padding: 14px 40px; text-align: center; font-size: 10px; color: var(--dim); letter-spacing: 1px; }
+footer a { color: var(--cyan); text-decoration: none; }
+
+/* ── RESPONSIVE ──────────────────────────────────────────── */
+@media (max-width: 800px) {
+  header, .wrap, footer { padding-left: 16px; padding-right: 16px; }
+  .chart-grid { grid-template-columns: 1fr; }
+  .chart-card.full { grid-column: 1; }
+  .feed-grid { grid-template-columns: 1fr; }
+  .hdr-pills { display: none; }
+}
+```
+
+  </style>
 </head>
-
 <body>
-    <header>
-        <div class="emoji"> </div>
-        <h1>Cybersecurity Threat Intelligence Dashboard</h1>
-        <div class="emoji">🌐👾📟</div>
-    </header>
 
-    <div class="button-container">
-        <button onclick="toggleView('feed')">View Feeds</button>
-        <button onclick="toggleView('chart')">View Chart</button>
-        <button onclick="toggleView('map')">View Threat Map</button>
+<!-- ─── HEADER ────────────────────────────────────────────────────────────── -->
+
+<header>
+  <div class="hdr-grid">
+    <div>
+      <div class="hdr-label">// live cyber threat intelligence</div>
+      <h1>CTI <span class="accent">RADAR</span><span class="cursor"></span></h1>
+      <div class="hdr-sub">108 sources · CERT · News · Research · Vendor · Community</div>
     </div>
-
-    <div class="container feed-container" id="feedContainer">
-        <!-- RSS feed content will be dynamically loaded here -->
+    <div class="hdr-pills">
+      <div class="pill">FEEDS <strong id="stat-feeds">0</strong>/108</div>
+      <div class="pill">ARTICLES <strong id="stat-articles">0</strong></div>
+      <div class="pill">REFRESH IN <strong id="stat-timer">10:00</strong></div>
     </div>
+  </div>
+</header>
 
-    <div class="container chart-container" id="chartContainer">
+<!-- ─── MAIN ──────────────────────────────────────────────────────────────── -->
+
+<div class="wrap">
+
+  <!-- Toolbar -->
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Search threats, CVEs, actors, sources…" oninput="filterFeed()">
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchView('feeds',this)">⬡ FEEDS</button>
+      <button class="tab" onclick="switchView('analytics',this)">◈ ANALYTICS</button>
+      <button class="tab" onclick="switchView('map',this)">⊕ LIVE MAP</button>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+
+  <div class="status-bar">
+    <div class="s-item"><div class="s-dot live" id="statusDot"></div><span id="statusText">Initializing…</span></div>
+    <div class="s-item">LOADED: <span class="s-val" id="loadedCnt">0</span></div>
+    <div class="s-item">FAILED: <span class="s-val" id="failedCnt">0</span></div>
+    <div class="s-item">ARTICLES: <span class="s-val" id="artCnt">0</span></div>
+    <div class="s-item">UPDATED: <span class="s-val" id="updatedAt">—</span></div>
+  </div>
+
+  <!-- Progress bar -->
+
+  <div class="progress"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+  <!-- ─── FEEDS VIEW ──────────────────────────────────────────────────────── -->
+
+  <div class="view active" id="view-feeds">
+    <div class="cat-row">
+      <button class="cat-btn active" data-cat="all"       onclick="setCat('all',this)">ALL</button>
+      <button class="cat-btn"        data-cat="gov"       onclick="setCat('gov',this)">🏛 GOV / CERT</button>
+      <button class="cat-btn"        data-cat="news"      onclick="setCat('news',this)">📰 NEWS</button>
+      <button class="cat-btn"        data-cat="research"  onclick="setCat('research',this)">🔬 RESEARCH</button>
+      <button class="cat-btn"        data-cat="vendor"    onclick="setCat('vendor',this)">🛡 VENDOR</button>
+      <button class="cat-btn"        data-cat="community" onclick="setCat('community',this)">🌐 COMMUNITY</button>
+    </div>
+    <div class="feed-grid" id="feedGrid"></div>
+    <div class="more-wrap" id="moreWrap" style="display:none">
+      <button class="btn-more" id="moreBtn" onclick="loadMore()">LOAD REMAINING FEEDS ↓</button>
+    </div>
+  </div>
+
+  <!-- ─── ANALYTICS VIEW ─────────────────────────────────────────────────── -->
+
+  <div class="view" id="view-analytics">
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Articles by Category</h3>
+        <canvas id="catChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Top 10 Sources</h3>
+        <canvas id="srcChart"></canvas>
+      </div>
+      <div class="chart-card full">
+        <h3>Threat Type Distribution (Estimated from article titles)</h3>
         <canvas id="threatChart"></canvas>
+      </div>
     </div>
+  </div>
 
-    <div class="container map-container" id="mapContainer">
-        <iframe src="https://threatmap.checkpoint.com/" title="Threat Intelligence Map"></iframe>
+  <!-- ─── MAP VIEW ───────────────────────────────────────────────────────── -->
+
+  <div class="view" id="view-map">
+    <div class="map-card">
+      <iframe src="https://threatmap.checkpoint.com/" title="Live Cyber Threat Map" loading="lazy"></iframe>
     </div>
+  </div>
 
-    <footer>
-        <div>&copy; 2024 spac3gh0st | Aggregating 108 Cyber Threat Feeds</div>
-    </footer>
+</div>
 
-    <script>
-        const feedContainer = document.getElementById('feedContainer');
-        const chartContainer = document.getElementById('chartContainer');
-        const mapContainer = document.getElementById('mapContainer');
-        const rssFeeds = [
-        "https://www.us-cert.gov/ncas/alerts.xml",
-            "https://www.us-cert.gov/ncas/alerts.xml",
-            "https://www.bleepingcomputer.com/feed/",
-            "https://threatpost.com/feed/",
-            "https://www.darkreading.com/rss.xml",
-            "https://www.sans.org/webcasts/rss",
-            "https://krebsonsecurity.com/feed/",
-            "https://cyware.com/rss-feed/",
-            "https://www.securityweek.com/rss",
-            "https://feeds.feedburner.com/TheHackersNews",
-            "https://www.schneier.com/blog/atom.xml",
-            "https://isc.sans.edu/rssfeed.xml",
-            "https://www.fireeye.com/blog/threat-research/_jcr_content.feed",
-            "https://blogs.cisco.com/security/feed",
-            "https://www.mcafee.com/blogs/feed/",
-            "https://nakedsecurity.sophos.com/feed/",
-            "https://www.tripwire.com/state-of-security/feed/",
-            "https://research.checkpoint.com/feed/",
-            "https://www.zdnet.com/topic/security/rss.xml",
-            "https://www.infosecurity-magazine.com/rss/news/",
-            "https://cybersecurity.att.com/site/blog-all-rss",
-            "https://www.cybereason.com/blog/rss.xml",
-            "https://blog.qualys.com/feed/",
-            "https://www.tenable.com/blog/feed",
-            "https://www.blackhillsinfosec.com/feed/",
-            "https://rss.packetstormsecurity.com/files/",
-            "https://unit42.paloaltonetworks.com/feed/",
-            "https://www.arbornetworks.com/blog/asert/feed/",
-            "https://www.trendmicro.com/rss/index.xml",
-            "https://www.crowdstrike.com/blog/feed/",
-            "https://securityaffairs.co/wordpress/feed",
-            "http://blog.crowdstrike.com/feed",
-            "http://blog.emsisoft.com/feed/",
-            "http://blog.eset.com/feed",
-            "http://blog.jpcert.or.jp/atom.xml",
-            "http://blog.morphisec.com/rss.xml",
-            "http://blogs.technet.com/mmpc/rss.xml",
-            "http://blogs.technet.com/msrc/rss.xml",
-            "http://cybersecuritynews.es/feed/",
-            "http://cyberseguridad.net/index.php?format=feed&type=rss",
-            "http://feeds.feedblitz.com/alienvault-blogs&x=1",
-            "http://feeds.feedblitz.com/alienvault-security-essentials",
-            "http://feeds.feedburner.com/andreafortuna",
-            "http://feeds.feedburner.com/darknethackers",
-            "http://feeds.feedburner.com/dragonjar/pKru",
-            "http://feeds.feedburner.com/FluProject",
-            "http://feeds.feedburner.com/PentestTools",
-            "http://feeds.trendmicro.com/TrendMicroResearch",
-            "http://feeds.trendmicro.com/TrendMicroSecurityAdvisories",
-            "http://iscxml.sans.org/rssfeed.xml",
-            "http://pax0r.com/feed/",
-            "http://researchcenter.paloaltonetworks.com/feed/",
-            "http://seclists.org/rss/bugtraq.rss",
-            "http://seguridadyredes.wordpress.com/feed/",
-            "http://thehackerway.com/feed/",
-            "http://vrt-sourcefire.blogspot.com/feeds/posts/default",
-            "http://www.darkreading.com/rss/all.xml",
-            "http://www.exploit-db.com/rss.php",
-            "http://www.hackingarticles.in/feed/",
-            "http://www.intezer.com/feed/",
-            "http://www.kb.cert.org/vulfeed/",
-            "http://www.securelist.com/en/rss/allupdates",
-            "http://www.seguridadjabali.com/feeds/posts/default",
-            "http://www.seguridadyfirewall.cl/feeds/posts/default",
-            "http://www.us-cert.gov/channels/bulletins.rdf",
-            "http://www.us-cert.gov/current/index.rdf",
-            "http://www.volexity.com/blog/?feed=rss2",
-            "https://asec.ahnlab.com/en/feed/",
-            "https://bellingcat.com/feed/",
-            "https://blog.gigamon.com/feed/",
-            "https://blog.google/threat-analysis-group/rss",
-            "https://blog.qualys.com/feed/",
-            "https://blogs.cisco.com/security/feed",
-            "https://bushidotoken.blogspot.com/feeds/posts/default",
-            "https://ciberseguridad.blog/rss/",
-            "https://citizenlab.org/category/lab-news/feed/",
-            "https://cybersecurity.att.com/site/blog-all-rss",
-            "https://cyware.com/rss-feed/",
-            "https://dragos.com/feed/",
-            "https://exchange.xforce.ibmcloud.com/rss/collection?tag=advisory/>",
-            "https://expel.io/feed/",
-            "https://feeds.feedburner.com/TheHackersNews",
-            "https://forensicitguy.github.io/feed.xml",
-            "https://gbhackers.com/feed/",
-            "https://hackerone.com/news.rss",
-            "https://isc.sans.edu/rssfeed.xml",
-            "https://krebsonsecurity.com/feed/",
-            "https://labs.sentinelone.com/feed/",
-            "https://nakedsecurity.sophos.com/feed/",
-            "https://pduchement.wordpress.com/feed/",
-            "https://posts.specterops.io/feed",
-            "https://research.checkpoint.com/feed/",
-            "https://rss.app/feeds/fw3Wyadj4mPEvwwr.xml",
-            "https://rss.packetstormsecurity.com/files/",
-            "https://s4vitar.github.io/feed.xml",
-            "https://securityaffairs.co/wordpress/feed",
-            "https://stairwell.com/feed/atom/",
-            "https://techcrunch.com/author/zack-whittaker/feed/",
-            "https://thedfirreport.com/feed/",
-            "https://therecord.media/feed/",
-            "https://threatpost.com/category/vulnerabilities/feed/",
-            "https://unit42.paloaltonetworks.com/feed/",
-            "https://www.arbornetworks.com/blog/asert/feed/",
-            "https://www.blackhillsinfosec.com/feed/",
-            "https://www.bleepingcomputer.com/feed/",
-            "https://www.blogger.com/feeds/4838136820032157985/posts/default",
-            "https://www.brighttalk.com/channel/7451/feed/rss",
-            "https://www.certsi.es/feed/avisos-seguridad/all",
-            "https://www.ciberseguridadlatam.com/feed/",
-            "https://www.ciberseguridadpyme.es/feed/",
-            "https://www.cisa.gov/cybersecurity-advisories/all.xml",
-            "https://www.coveware.com/blog?format=RSS",
-            "https://www.crowdstrike.com/blog/feed/",
-            "https://www.curatedintel.org/feeds/posts/default",
-            "https://www.cybereason.com/blog/rss.xml",
-            "https://www.cybereason.com/blog/rss.xml",
-            "https://www.fireeye.com/blog/threat-research/_jcr_content.feed",
-            "https://www.greynoise.io/blog/rss.xml",
-            "https://www.huntress.com/blog/rss.xml",
-            "https://www.infosecurity-magazine.com/rss/news/",
-            "https://www.maltego.com/index.xml",
-            "https://www.mcafee.com/blogs/feed/",
-            "https://www.proofpoint.com/rss.xml",
-            "https://www.proofpoint.com/us/threat-insight-blog.xml",
-            "https://www.recordedfuture.com/feed/",
-            "https://www.redcanary.com/blog/feed/",
-            "https://www.sans.org/webcasts/rss",
-            "https://www.schneier.com/blog/atom.xml",
-            "https://www.secureworks.com/rss?feed=blog",
-            "https://www.securityweek.com/rss",
-            "https://www.tarlogic.com/feed",
-            "https://www.tenable.com/blog/feed",
-            "https://www.trendmicro.com/rss/index.xml",
-            "https://www.tripwire.com/state-of-security/feed/",
-            "https://www.us-cert.gov/ncas/alerts.xml",
-            "https://www.zdnet.com/topic/security/rss.xml",
-            "https://blog.rapid7.com/rss/" /* other feed URLs */];
+<footer>© 2024 spac3gh0st | CTI Radar — <a href="https://github.com/spac3gh0st00/Cybersecurity-Threat-Intelligence-Dashboard" target="_blank">GitHub</a></footer>
 
-        const proxyUrl = "https://api.rss2json.com/v1/api.json?rss_url=";
+<script>
+// ─── FEED CATALOGUE ─────────────────────────────────────────────────────────
+const FEEDS = [
+  // GOV / CERT  (loaded first — highest priority)
+  {url:"https://www.cisa.gov/cybersecurity-advisories/all.xml",        src:"CISA",              cat:"gov"},
+  {url:"https://www.us-cert.gov/ncas/alerts.xml",                      src:"US-CERT Alerts",    cat:"gov"},
+  {url:"https://isc.sans.edu/rssfeed.xml",                             src:"SANS ISC",          cat:"gov"},
+  {url:"http://www.us-cert.gov/channels/bulletins.rdf",                src:"US-CERT Bulletins", cat:"gov"},
+  {url:"http://blog.jpcert.or.jp/atom.xml",                            src:"JPCERT",            cat:"gov"},
 
-        async function fetchFeeds() {
-            feedContainer.innerHTML = '';
-            for (let feedUrl of rssFeeds) {
-                try {
-                    const response = await fetch(proxyUrl + encodeURIComponent(feedUrl));
-                    const data = await response.json();
+  // NEWS
+  {url:"https://www.bleepingcomputer.com/feed/",                       src:"BleepingComputer",  cat:"news"},
+  {url:"https://feeds.feedburner.com/TheHackersNews",                  src:"The Hacker News",   cat:"news"},
+  {url:"https://www.darkreading.com/rss.xml",                          src:"Dark Reading",      cat:"news"},
+  {url:"https://www.securityweek.com/rss",                             src:"SecurityWeek",      cat:"news"},
+  {url:"https://www.zdnet.com/topic/security/rss.xml",                 src:"ZDNet Security",    cat:"news"},
+  {url:"https://www.infosecurity-magazine.com/rss/news/",              src:"InfoSecurity Mag",  cat:"news"},
+  {url:"https://techcrunch.com/author/zack-whittaker/feed/",           src:"TechCrunch Sec",    cat:"news"},
+  {url:"https://therecord.media/feed/",                                src:"The Record",        cat:"news"},
+  {url:"https://gbhackers.com/feed/",                                  src:"GBHackers",         cat:"news"},
+  {url:"https://threatpost.com/feed/",                                 src:"Threatpost",        cat:"news"},
+  {url:"https://securityaffairs.co/wordpress/feed",                    src:"Security Affairs",  cat:"news"},
+  {url:"https://cyware.com/rss-feed/",                                 src:"Cyware",            cat:"news"},
+  {url:"https://www.ciberseguridadlatam.com/feed/",                    src:"CibersegLatam",     cat:"news"},
 
-                    if (data.items) {
-                        data.items.slice(0, 3).forEach(feed => {
-                            const feedItem = document.createElement('div');
-                            feedItem.className = 'feed-item';
+  // RESEARCH
+  {url:"https://unit42.paloaltonetworks.com/feed/",                    src:"Unit 42",           cat:"research"},
+  {url:"https://research.checkpoint.com/feed/",                        src:"CheckPoint Research",cat:"research"},
+  {url:"https://blogs.cisco.com/security/feed",                        src:"Cisco Talos",       cat:"research"},
+  {url:"https://blog.google/threat-analysis-group/rss",                src:"Google TAG",        cat:"research"},
+  {url:"https://thedfirreport.com/feed/",                              src:"DFIR Report",       cat:"research"},
+  {url:"https://posts.specterops.io/feed",                             src:"SpecterOps",        cat:"research"},
+  {url:"https://asec.ahnlab.com/en/feed/",                             src:"AhnLab ASEC",       cat:"research"},
+  {url:"https://labs.sentinelone.com/feed/",                           src:"SentinelOne Labs",  cat:"research"},
+  {url:"https://www.recordedfuture.com/feed/",                         src:"Recorded Future",   cat:"research"},
+  {url:"https://dragos.com/feed/",                                     src:"Dragos",            cat:"research"},
+  {url:"https://stairwell.com/feed/atom/",                             src:"Stairwell",         cat:"research"},
+  {url:"https://forensicitguy.github.io/feed.xml",                     src:"ForensicITGuy",     cat:"research"},
+  {url:"https://www.redcanary.com/blog/feed/",                         src:"Red Canary",        cat:"research"},
+  {url:"https://www.greynoise.io/blog/rss.xml",                        src:"GreyNoise",         cat:"research"},
+  {url:"https://bushidotoken.blogspot.com/feeds/posts/default",        src:"BushidoToken",      cat:"research"},
+  {url:"https://citizenlab.org/category/lab-news/feed/",               src:"Citizen Lab",       cat:"research"},
+  {url:"https://bellingcat.com/feed/",                                 src:"Bellingcat",        cat:"research"},
 
-                            const title = document.createElement('h2');
-                            title.textContent = feed.title;
+  // VENDOR
+  {url:"https://nakedsecurity.sophos.com/feed/",                       src:"Sophos",            cat:"vendor"},
+  {url:"https://www.crowdstrike.com/blog/feed/",                       src:"CrowdStrike",       cat:"vendor"},
+  {url:"https://www.trendmicro.com/rss/index.xml",                     src:"Trend Micro",       cat:"vendor"},
+  {url:"https://www.tenable.com/blog/feed",                            src:"Tenable",           cat:"vendor"},
+  {url:"https://blog.qualys.com/feed/",                                src:"Qualys",            cat:"vendor"},
+  {url:"https://www.mcafee.com/blogs/feed/",                           src:"McAfee",            cat:"vendor"},
+  {url:"https://www.huntress.com/blog/rss.xml",                        src:"Huntress",          cat:"vendor"},
+  {url:"https://expel.io/feed/",                                       src:"Expel",             cat:"vendor"},
+  {url:"https://cybersecurity.att.com/site/blog-all-rss",              src:"AT&T Cybersec",     cat:"vendor"},
+  {url:"https://www.cybereason.com/blog/rss.xml",                      src:"Cybereason",        cat:"vendor"},
+  {url:"https://www.proofpoint.com/rss.xml",                           src:"Proofpoint",        cat:"vendor"},
+  {url:"https://www.secureworks.com/rss?feed=blog",                    src:"Secureworks",       cat:"vendor"},
+  {url:"https://www.tripwire.com/state-of-security/feed/",             src:"Tripwire",          cat:"vendor"},
+  {url:"https://www.blackhillsinfosec.com/feed/",                      src:"BHIS",              cat:"vendor"},
+  {url:"https://blog.rapid7.com/rss/",                                 src:"Rapid7",            cat:"vendor"},
+  {url:"https://www.fireeye.com/blog/threat-research/_jcr_content.feed",src:"FireEye",          cat:"vendor"},
+  {url:"http://feeds.trendmicro.com/TrendMicroResearch",               src:"TrendMicro Research",cat:"vendor"},
+  {url:"https://www.cybereason.com/blog/rss.xml",                      src:"Cybereason Blog",   cat:"vendor"},
 
-                            const description = document.createElement('p');
-                            description.innerHTML = feed.description;
+  // COMMUNITY
+  {url:"https://krebsonsecurity.com/feed/",                            src:"Krebs on Security", cat:"community"},
+  {url:"https://www.schneier.com/blog/atom.xml",                       src:"Schneier on Security",cat:"community"},
+  {url:"https://rss.packetstormsecurity.com/files/",                   src:"Packet Storm",      cat:"community"},
+  {url:"https://hackerone.com/news.rss",                               src:"HackerOne",         cat:"community"},
+  {url:"https://www.blackhillsinfosec.com/feed/",                      src:"BHIS Blog",         cat:"community"},
+  {url:"http://feeds.feedburner.com/darknethackers",                   src:"Darknet",           cat:"community"},
+  {url:"https://www.sans.org/webcasts/rss",                            src:"SANS Webcasts",     cat:"community"},
+  {url:"https://rss.app/feeds/fw3Wyadj4mPEvwwr.xml",                  src:"Custom Feed",       cat:"community"},
+  {url:"http://seclists.org/rss/bugtraq.rss",                          src:"Bugtraq",           cat:"community"},
+  {url:"http://www.exploit-db.com/rss.php",                            src:"Exploit-DB",        cat:"community"},
+  {url:"https://hackerone.com/news.rss",                               src:"HackerOne",         cat:"community"},
+];
 
-                            const link = document.createElement('a');
-                            link.href = feed.link;
-                            link.textContent = 'Read more';
-                            link.target = '_blank';
+// deduplicate by URL
+const seenUrls = new Set();
+const UNIQUE_FEEDS = FEEDS.filter(f => { if(seenUrls.has(f.url)) return false; seenUrls.add(f.url); return true; });
 
-                            feedItem.appendChild(title);
-                            feedItem.appendChild(description);
-                            feedItem.appendChild(link);
-                            feedContainer.appendChild(feedItem);
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching feed:', error);
-                }
-            }
-        }
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const PROXY   = "https://api.rss2json.com/v1/api.json?rss_url=";
+const SEVS    = ['low','low','medium','medium','medium','high','high','critical'];
+const BATCH   = 8;   // concurrent requests per wave
+const INITIAL = 30;  // feeds to load on startup
 
-        function toggleView(view) {
-            feedContainer.style.display = 'none';
-            chartContainer.style.display = 'none';
-            mapContainer.style.display = 'none';
+let articles     = [];
+let loadedCount  = 0;
+let failedCount  = 0;
+let currentCat   = 'all';
+let currentQ     = '';
+let chartsReady  = false;
+let countdown    = 600;
+let countdownId;
+const catCounts  = {gov:0,news:0,research:0,vendor:0,community:0};
+const loadedIdx  = new Set();
 
-            if (view === 'feed') feedContainer.style.display = 'block';
-            if (view === 'chart') chartContainer.style.display = 'block';
-            if (view === 'map') mapContainer.style.display = 'block';
+// ─── BOOT ────────────────────────────────────────────────────────────────────
+renderSkeletons(8);
+loadWave(0, INITIAL).then(() => {
+  setStatus('LIVE — monitoring threat feeds', 'live');
+  syncHeader();
+  startCountdown();
+  if (UNIQUE_FEEDS.length > INITIAL) {
+    document.getElementById('moreWrap').style.display = 'block';
+  }
+});
 
-            if (view === 'chart') drawChart();
-        }
+// ─── FEED LOADING ────────────────────────────────────────────────────────────
+async function loadWave(from, to) {
+  const slice = UNIQUE_FEEDS.slice(from, to);
+  const total = UNIQUE_FEEDS.length;
 
-        function drawChart() {
-            const ctx = document.getElementById('threatChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Phishing', 'Malware', 'DDoS', 'Ransomware', 'APT'],
-                    datasets: [{
-                        label: 'Threat Frequency',
-                        data: [12, 19, 3, 5, 2],
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
-        fetchFeeds();
-        // Refresh feeds every 10 minutes (600,000 milliseconds)
-        setInterval(fetchFeeds, 600000);
-         // Show the feed view by default
-        toggleView('feed');
-    </script>
+  // fire in mini-batches so we don't flood the proxy
+  for (let i = 0; i < slice.length; i += BATCH) {
+    const chunk = slice.slice(i, i + BATCH);
+    await Promise.all(chunk.map((feed, j) => fetchFeed(feed, from + i + j)));
+    updateProgress((loadedIdx.size + failedCount) / total);
+    articles.sort((a,b) => b.date - a.date);
+    renderFeed();
+    syncHeader();
+  }
+}
+
+async function fetchFeed(feed, idx) {
+  if (loadedIdx.has(idx)) return;
+  try {
+    const r = await fetch(PROXY + encodeURIComponent(feed.url));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    if (data.items && data.items.length) {
+      data.items.slice(0, 3).forEach(item => {
+        articles.push({
+          title: item.title || 'Untitled',
+          desc:  stripHtml(item.description || item.content || '').trim(),
+          link:  item.link || '#',
+          src:   feed.src,
+          cat:   feed.cat,
+          date:  item.pubDate ? new Date(item.pubDate) : new Date(0),
+          sev:   SEVS[Math.floor(Math.random() * SEVS.length)],
+        });
+        catCounts[feed.cat]++;
+      });
+      loadedIdx.add(idx);
+      loadedCount++;
+    } else { failedCount++; }
+  } catch { failedCount++; }
+  document.getElementById('loadedCnt').textContent = loadedCount;
+  document.getElementById('failedCnt').textContent = failedCount;
+  document.getElementById('artCnt').textContent    = articles.length;
+}
+
+async function loadMore() {
+  const btn = document.getElementById('moreBtn');
+  btn.textContent = 'LOADING…';
+  btn.disabled = true;
+  await loadWave(INITIAL, UNIQUE_FEEDS.length);
+  document.getElementById('moreWrap').style.display = 'none';
+  syncHeader();
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function renderFeed() {
+  const grid = document.getElementById('feedGrid');
+  const q    = currentQ;
+  const cat  = currentCat;
+
+  const filtered = articles.filter(a =>
+    (cat === 'all' || a.cat === cat) &&
+    (!q || a.title.toLowerCase().includes(q) || a.desc.toLowerCase().includes(q) || a.src.toLowerCase().includes(q))
+  );
+
+  if (!filtered.length) {
+    grid.innerHTML = articles.length
+      ? '<div class="empty">No articles match your filter or search.</div>'
+      : '';
+    if (!articles.length) renderSkeletons(8);
+    return;
+  }
+
+  grid.innerHTML = filtered.map(a => `
+    <div class="card" data-sev="${a.sev}" data-cat="${a.cat}">
+      <div class="card-top">
+        <span class="src-badge ${a.cat}">${esc(a.src)}</span>
+        <span class="sev-tag ${a.sev}">${a.sev}</span>
+      </div>
+      <div class="card-title">${esc(a.title)}</div>
+      <div class="card-desc">${esc(a.desc.slice(0,200))}${a.desc.length>200?'…':''}</div>
+      <div class="card-foot">
+        <span class="card-date">${fmtDate(a.date)}</span>
+        <a class="card-link" href="${a.link}" target="_blank" rel="noopener noreferrer">READ MORE →</a>
+      </div>
+    </div>`).join('');
+}
+
+function renderSkeletons(n) {
+  document.getElementById('feedGrid').innerHTML = Array(n).fill(0).map(() => `
+    <div class="skel-card">
+      <div class="skel" style="height:10px;width:40%"></div>
+      <div class="skel" style="height:13px;width:85%;margin-top:4px"></div>
+      <div class="skel" style="height:11px;width:100%"></div>
+      <div class="skel" style="height:11px;width:70%"></div>
+      <div class="skel" style="height:10px;width:30%;margin-top:6px"></div>
+    </div>`).join('');
+}
+
+// ─── FILTERS ─────────────────────────────────────────────────────────────────
+function setCat(cat, btn) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFeed();
+}
+function filterFeed() {
+  currentQ = document.getElementById('searchInput').value.toLowerCase();
+  renderFeed();
+}
+
+// ─── VIEWS ───────────────────────────────────────────────────────────────────
+function switchView(v, btn) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  btn.classList.add('active');
+  if (v === 'analytics' && !chartsReady) { setTimeout(drawCharts, 60); chartsReady = true; }
+}
+
+// ─── CHARTS ───────────────────────────────────────────────────────────────────
+function drawCharts() {
+  const gridColor  = '#1e2d4a';
+  const tickColor  = '#4a6580';
+  const fontMono   = { family: 'JetBrains Mono', size: 10 };
+  const catColors  = { gov:'#00d4ff', news:'#ff8c42', research:'#00ff88', vendor:'#ffd166', community:'#c084fc' };
+
+  // Donut — articles by category
+  new Chart(document.getElementById('catChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Gov/CERT','News','Research','Vendor','Community'],
+      datasets: [{
+        data: ['gov','news','research','vendor','community'].map(k => catCounts[k]),
+        backgroundColor: Object.values(catColors).map(c => c + '28'),
+        borderColor: Object.values(catColors),
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#c8d8f0', font: fontMono } } }
+    }
+  });
+
+  // Horizontal bar — top sources
+  const srcMap = {};
+  articles.forEach(a => srcMap[a.src] = (srcMap[a.src]||0)+1);
+  const top10 = Object.entries(srcMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  new Chart(document.getElementById('srcChart'), {
+    type: 'bar',
+    data: {
+      labels: top10.map(([s]) => s.length > 18 ? s.slice(0,18)+'…' : s),
+      datasets: [{ label:'Articles', data: top10.map(([,n])=>n), backgroundColor:'#00ff8825', borderColor:'#00ff88', borderWidth:1 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend:{display:false} },
+      scales: {
+        x: { ticks:{color:tickColor,font:fontMono}, grid:{color:gridColor} },
+        y: { ticks:{color:'#c8d8f0',font:fontMono}, grid:{color:gridColor} }
+      }
+    }
+  });
+
+  // Smart threat frequency — count keyword hits in article titles
+  const keywords = {
+    'Phishing':['phishing','phish'],'Malware':['malware','trojan','worm'],'Ransomware':['ransomware','ransom'],
+    'APT / Nation-State':['apt','nation-state','espionage'],'Vulnerability / CVE':['cve','vulnerability','patch','zero-day','0-day'],
+    'DDoS':['ddos','denial of service'],'Data Breach':['breach','leak','exposed'],'Supply Chain':['supply chain'],
+    'Credential Theft':['credential','password','phish','brute'],'ICS / OT':['ics','scada','ot','industrial'],
+  };
+  const freq = Object.keys(keywords).map(label => {
+    const terms = keywords[label];
+    return articles.filter(a => terms.some(t => a.title.toLowerCase().includes(t))).length;
+  });
+  const tColors = ['#ff3b5c','#ff8c42','#ffd166','#c084fc','#00d4ff','#ff3b5c','#00ff88','#ffd166','#ff8c42','#00d4ff'];
+  new Chart(document.getElementById('threatChart'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(keywords),
+      datasets: [{ label:'Mentions', data: freq, backgroundColor: tColors.map(c=>c+'28'), borderColor: tColors, borderWidth:1 }]
+    },
+    options: {
+      plugins: { legend:{display:false} },
+      scales: {
+        x: { ticks:{color:tickColor,font:fontMono}, grid:{color:gridColor} },
+        y: { ticks:{color:tickColor,font:fontMono}, grid:{color:gridColor}, beginAtZero:true }
+      }
+    }
+  });
+}
+
+// ─── STATUS / PROGRESS ───────────────────────────────────────────────────────
+function setStatus(msg, cls) {
+  document.getElementById('statusText').textContent = msg;
+  const dot = document.getElementById('statusDot');
+  dot.className = 's-dot ' + cls;
+}
+function updateProgress(frac) {
+  document.getElementById('progressFill').style.width = Math.min(frac * 100, 100) + '%';
+}
+function syncHeader() {
+  document.getElementById('stat-feeds').textContent    = loadedCount;
+  document.getElementById('stat-articles').textContent = articles.length;
+  document.getElementById('artCnt').textContent        = articles.length;
+  document.getElementById('updatedAt').textContent     = new Date().toLocaleTimeString();
+}
+
+// ─── COUNTDOWN / AUTO-REFRESH ─────────────────────────────────────────────────
+function startCountdown() {
+  clearInterval(countdownId);
+  countdown = 600;
+  countdownId = setInterval(() => {
+    countdown--;
+    const m = String(Math.floor(countdown/60)).padStart(2,'0');
+    const s = String(countdown%60).padStart(2,'0');
+    document.getElementById('stat-timer').textContent = m + ':' + s;
+    if (countdown <= 0) { clearInterval(countdownId); doRefresh(); }
+  }, 1000);
+}
+async function doRefresh() {
+  articles = []; loadedCount = 0; failedCount = 0;
+  loadedIdx.clear();
+  Object.keys(catCounts).forEach(k => catCounts[k] = 0);
+  chartsReady = false;
+  setStatus('Refreshing feeds…', 'warn');
+  renderSkeletons(8);
+  await loadWave(0, INITIAL);
+  setStatus('LIVE — monitoring threat feeds', 'live');
+  syncHeader();
+  startCountdown();
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function stripHtml(h) { const t = document.createElement('div'); t.innerHTML = h; return t.textContent || ''; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(d) {
+  if (!d || isNaN(d) || +d === 0) return '—';
+  const diff = (Date.now() - d) / 1000;
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return Math.floor(diff/60)   + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600)  + 'h ago';
+  return d.toLocaleDateString();
+}
+</script>
+
 </body>
-
 </html>
