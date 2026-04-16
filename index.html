@@ -807,7 +807,8 @@ loadFeeds();
 async function loadFeeds() {
   setStatus('Loading feeds…', 'warn');
   try {
-    const r = await fetch('./feeds.json?t=' + Date.now());
+    const base = window.location.pathname.replace(/\/[^/]*$/, '/');
+    const r = await fetch(base + 'feeds.json?t=' + Date.now());
     if (!r.ok) throw new Error(r.status);
     const data = await r.json();
 
