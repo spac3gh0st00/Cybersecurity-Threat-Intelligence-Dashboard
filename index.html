@@ -1752,7 +1752,7 @@ function renderActors() {
           <div class="actor-count-label">article${matches.length!==1?'s':''} mentioning<br>this actor right now</div>
           ${matches.length ? `<span style="margin-left:auto;font-size:10px;color:var(--dim)">${isExpanded?'▲ collapse':'▼ expand'}</span>` : ''}
         </div>
-        ${matches.length ? `<div class="actor-articles">${articleSnippets}${matches.length>5?`<div style="font-size:10px;color:var(--dim);padding:6px 0">+${matches.length-5} more — use search to find them</div>`:''}</div>` : ''}
+        ${matches.length ? '<div class="actor-articles">' + articleSnippets + (matches.length>5 ? '<div style="font-size:10px;color:var(--dim);padding:6px 0">+' + (matches.length-5) + ' more \u2014 use search to find them</div>' : '') + '</div>' : ''}
       </div>`;
   }).join('');
 }
@@ -1780,4 +1780,4 @@ function fmtDate(d) {
 </script>
 
 </body>
-</html> 
+</html>
