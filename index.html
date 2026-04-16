@@ -1754,6 +1754,9 @@ function toggleActorExpand(name, card) {
 }
 
 
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function stripHtml(h) { const t = document.createElement('div'); t.innerHTML = h; return t.textContent || ''; }
+
 function fmtDate(d) {
   if (!d || isNaN(d) || +d === 0) return '—';
   const diff = (Date.now() - d) / 1000;
