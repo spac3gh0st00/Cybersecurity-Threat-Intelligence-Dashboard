@@ -219,3 +219,13 @@ The source count in the UI updates automatically from the feed list length.
 -----
 
 *Credit: Gerard King — Cybersecurity Overlord and Master of Excess*
+
+-----
+
+## 🙏 Original Project
+
+CTI Radar is built on top of the original **108-feed Cybersecurity Threat Intelligence Dashboard** created by **Gerard King (Aardvark Infinity)**.
+
+- 📖 Original article: [The Ultimate Cybersecurity Threat Intelligence Dashboard](https://medium.com/aardvark-infinity/%EF%B8%8F-the-ultimate-cybersecurity-threat-intelligence-dashboard-108-feeds-of-pure-data-excess-%EF%B8%8F-4d8594e333a9)
+- 🌐 Author: [Aardvark Infinity on Medium](https://medium.com/aardvark-infinity)
+- 🌍 Website: [www.gerardking.dev](https://www.gerardking.dev)*
