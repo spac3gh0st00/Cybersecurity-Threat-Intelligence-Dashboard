@@ -822,6 +822,8 @@ async function loadFeeds() {
     updateProgress(1);
     renderFeed();
     syncHeader();
+    document.getElementById('loadedCnt').textContent = loadedCount;
+    document.getElementById('failedCnt').textContent = failedCount;
     if (data.updated) {
       document.getElementById('updatedAt').textContent =
         new Date(data.updated).toLocaleTimeString();
@@ -1028,6 +1030,8 @@ function syncHeader() {
   document.getElementById('stat-feeds').textContent    = loadedCount;
   document.getElementById('stat-articles').textContent = articles.length;
   document.getElementById('artCnt').textContent        = articles.length;
+  document.getElementById('loadedCnt').textContent     = loadedCount;
+  document.getElementById('failedCnt').textContent     = failedCount;
   document.getElementById('updatedAt').textContent     = new Date().toLocaleTimeString();
 }
 
