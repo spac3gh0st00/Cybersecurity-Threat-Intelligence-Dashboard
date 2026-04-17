@@ -2,7 +2,7 @@
 
 > A live, browser-based threat intelligence dashboard aggregating **68 curated sources** across government advisories, news, research, vendor blogs, and community intelligence — with built-in IOC lookup, CVE monitoring, keyword alerts, TTP tagging, threat actor tracking, bookmarks, a live threat map, and analytics. Feeds are fetched server-side via GitHub Actions every 30 minutes — no CORS issues, no rate limits, no API keys required.
 
-**Live:** [spac3gh0st00.github.io/Cybersecurity-Threat-Intelligence-Dashboard](https://spac3gh0st00.github.io/Cybersecurity-Threat-Intelligence-Dashboard)
+**Live:** [CTI RADAR](https://radar.spac3gh0st.lol/)
 
 -----
 
