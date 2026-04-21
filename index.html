@@ -5,11 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CTI Radar — 68 Threat Intelligence Sources</title>
   <meta name="theme-color" content="#070b14">
+
+  <!-- ── SECURITY HEADERS ─────────────────────────────────────────────────── -->
+  <!-- Prevents MIME-type sniffing -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <!-- Controls referrer info sent when following links -->
+  <meta http-equiv="Referrer-Policy" content="no-referrer">
+  <!-- Disables browser features not used by this page -->
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()">
+  <!-- Prevents clickjacking -->
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <!-- Content Security Policy — explicitly whitelists every external resource -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com;
+    style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+    font-src https://fonts.gstatic.com;
+    img-src 'self' data: https://*.cartocdn.com https://*.openstreetmap.org;
+    connect-src 'self'
+      https://services.nvd.nist.gov
+      https://feodotracker.abuse.ch
+      https://www.cisa.gov
+      https://api.allorigins.win
+      https://corsproxy.io;
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
+  ">
+
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23070b14'/%3E%3Cpath d='M16 4 L28 10 L28 22 L16 28 L4 22 L4 10 Z' fill='none' stroke='%2300ff88' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%2300ff88'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%2300d4ff' stroke-width='1' stroke-dasharray='2 2'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%2300d4ff' stroke-width='0.75' stroke-dasharray='2 3' opacity='0.6'/%3E%3Cline x1='16' y1='16' x2='22' y2='10' stroke='%2300ff88' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+
+  <!-- ── CDN RESOURCES — pinned to exact versions ──────────────────────────── -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
+          crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin="anonymous">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Orbitron:wght@400;700;900&display=swap"
+        rel="stylesheet">
   <style>
     :root {
       --bg:       #070b14;
