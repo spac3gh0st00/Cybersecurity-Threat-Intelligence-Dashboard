@@ -184,17 +184,31 @@ def fetch_feed(feed: dict) -> tuple[list[dict], bool]:
 
 
 # ── MAP DATA FETCHERS ─────────────────────────────────────────────────────────
+def get_json(url: str, attempts: int = 3):
+    """GET a JSON document, retrying a couple of times — abuse.ch and CISA both
+    occasionally throttle or reset connections from GitHub's runner IPs."""
+    last = None
+    for n in range(attempts):
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            last = e
+            if n < attempts - 1:
+                time.sleep(2 * (n + 1))
+    raise last
+
+
 def fetch_feodo() -> list:
-    """Fetch active C2 botnet servers from Feodo Tracker (abuse.ch)."""
+    """Fetch C2 botnet servers from Feodo Tracker (abuse.ch)."""
     urls = [
         "https://feodotracker.abuse.ch/downloads/ipblocklist.json",
         "https://feodotracker.abuse.ch/downloads/ipblocklist_recommended.json",
     ]
     for url in urls:
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-            resp.raise_for_status()
-            data = resp.json()
+            data = get_json(url)
             if isinstance(data, list) and len(data) > 0:
                 print(f"  OK    Feodo Tracker ({len(data)} C2 servers) via {url.split('/')[-1]}")
                 return data
@@ -203,19 +217,43 @@ def fetch_feodo() -> list:
     return []
 
 
+# The map and sidebar only read these fields. The full CISA catalog carries
+# requiredAction, notes, cwes, etc. and made up ~89% of feeds.json (1.4 MB of 1.6 MB).
+KEV_KEEP = ("cveID", "vendorProject", "product", "shortDescription", "dateAdded", "dueDate")
+KEV_DESC_MAX = 160
+
+
 def fetch_kev() -> dict:
-    """Fetch CISA Known Exploited Vulnerabilities catalog."""
+    """Fetch the CISA Known Exploited Vulnerabilities catalog, trimmed to what the UI uses."""
     url = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-        resp.raise_for_status()
-        data = resp.json()
+        data = get_json(url)
         vulns = data.get("vulnerabilities", [])
-        print(f"  OK    CISA KEV ({len(vulns)} vulnerabilities)")
-        return data
+        slim = []
+        for v in vulns:
+            row = {k: (v.get(k) or "") for k in KEV_KEEP}
+            row["shortDescription"] = row["shortDescription"][:KEV_DESC_MAX]
+            slim.append(row)
+        print(f"  OK    CISA KEV ({len(slim)} vulnerabilities)")
+        return {
+            "title":          data.get("title", ""),
+            "catalogVersion": data.get("catalogVersion", ""),
+            "dateReleased":   data.get("dateReleased", ""),
+            "count":          len(slim),
+            "vulnerabilities": slim,
+        }
     except Exception as e:
         print(f"  FAIL  CISA KEV: {e}")
     return {}
+
+
+def load_previous() -> dict:
+    """Last committed feeds.json, used as a fallback for the map data."""
+    try:
+        with open("feeds.json", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
 
 # ── MAIN ──────────────────────────────────────────────────────────────────────
@@ -239,8 +277,17 @@ def main():
     all_articles.sort(key=lambda a: a["date"], reverse=True)
 
     print("\nFetching map data…\n")
+    previous = load_previous()
     feodo = fetch_feodo()
     kev   = fetch_kev()
+    # A single failed fetch used to overwrite the map data with [] / {} and blank
+    # the map for 30 minutes. Keep the last good copy instead.
+    if not feodo and previous.get("feodo"):
+        print("  KEEP  Feodo Tracker: fetch failed, reusing previous data")
+        feodo = previous["feodo"]
+    if not kev.get("vulnerabilities") and previous.get("kev", {}).get("vulnerabilities"):
+        print("  KEEP  CISA KEV: fetch failed, reusing previous data")
+        kev = previous["kev"]
 
     output = {
         "updated":  datetime.now(timezone.utc).isoformat(),
