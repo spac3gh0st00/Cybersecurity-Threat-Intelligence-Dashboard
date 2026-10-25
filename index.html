@@ -19,7 +19,7 @@
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com;
-    style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+    style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://fonts.googleapis.com;
     font-src https://fonts.gstatic.com;
     img-src 'self' data: https://*.cartocdn.com https://*.openstreetmap.org;
     connect-src 'self'
@@ -284,6 +284,12 @@
     #leafletMap { width:100%; height:100%; }
     .tmap-loading { color:var(--dim); font-size:11px; padding:8px 0; }
     .tmap-error { color:var(--orange); font-size:10px; padding:4px 0; }
+    .tmap-note  { color:var(--dim); font-size:10px; line-height:1.6; padding:8px 0 2px; }
+    /* shown inside the map box when Leaflet itself cannot load */
+    .tmap-fatal { height:100%; display:flex; align-items:center; justify-content:center; text-align:center;
+                  padding:24px; color:var(--orange); font-size:12px; line-height:1.8; }
+    /* OSM fallback tiles are light, so invert them to match the dark theme */
+    .tiles-osm-dark { filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
     /* leaflet dark theme overrides */
     .leaflet-popup-content-wrapper { background:var(--bg-card2); color:var(--text); border:1px solid var(--border); border-radius:6px; font-family:var(--mono); font-size:11px; }
     .leaflet-popup-tip { background:var(--bg-card2); }
@@ -853,6 +859,7 @@ async function loadFeeds() {
     // Store map data from the same JSON — no extra fetches needed
     if (data.feodo && data.feodo.length) feodoData = data.feodo;
     if (data.kev   && data.kev.vulnerabilities) kevData = data.kev;
+    onMapDataReady();   // redraw the map if it was opened before this finished
 
     loadedCount = data.loaded  || new Set(data.articles.map(a=>a.src)).size;
     failedCount = data.failed  || 0;
@@ -869,6 +876,7 @@ async function loadFeeds() {
     setStatus('LIVE — feeds updated by GitHub Actions', 'live');
     startCountdown();
   } catch(e) {
+    onMapDataReady();   // stop the map waiting forever; it will show "unavailable"
     setStatus('feeds.json not found — see setup instructions below', 'err');
     updateProgress(0);
     document.getElementById('feedGrid').innerHTML = `
@@ -1434,39 +1442,113 @@ const COUNTRY_NAMES = {
 
 let leafletMap = null, mapLayer = 'c2', mapMarkerGroup = null;
 let feodoData = null, kevData = null, mapInitialized = false;
+let mapDataReady = false;   // true once loadFeeds() has finished (success OR failure)
 
-function initMapIfNeeded() {
-  if (mapInitialized) return;
+// Basemaps, tried in order. If the first one produces only errors the map
+// switches to the next one automatically instead of sitting on a blank grey box.
+// NOTE: the page sends no Referer by default and OSM refuses tile requests
+// without one, so the OSM entry opts in to sending just the origin.
+const TILE_PROVIDERS = [
+  { url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    opts:{ subdomains:'abcd', maxZoom:12,
+           attribution:'© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CartoDB</a>' } },
+  { url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    opts:{ maxZoom:12, referrerPolicy:'origin', className:'tiles-osm-dark',
+           attribution:'© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors' } },
+];
+
+// If unpkg is blocked or down, `L` is undefined and the original code threw a
+// silent ReferenceError. Try jsDelivr (already allowed by the CSP) before giving up.
+function ensureLeaflet() {
+  if (window.L) return Promise.resolve(true);
+  return new Promise(resolve => {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+    s.onload  = () => resolve(!!window.L);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+}
+
+function addBaseLayer() {
+  let current = null;
+  const use = (i) => {
+    if (current) leafletMap.removeLayer(current);
+    const p = TILE_PROVIDERS[i];
+    const layer = L.tileLayer(p.url, p.opts).addTo(leafletMap);
+    current = layer;
+    let loads = 0, errors = 0;
+    layer.on('tileload', () => { loads++; });
+    layer.on('tileerror', () => {
+      if (layer !== current) return;                 // late event from a replaced layer
+      errors++;
+      if (loads === 0 && errors >= 4 && i + 1 < TILE_PROVIDERS.length) {
+        setMapStatus('Primary basemap unreachable — using fallback tiles');
+        use(i + 1);
+      }
+    });
+  };
+  use(0);
+}
+
+async function initMapIfNeeded() {
+  if (mapInitialized) {
+    // Re-showing the tab: the container may have been resized while hidden.
+    if (leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
+    return;
+  }
   mapInitialized = true;
+  setMapStatus('Loading map…');
+  const ok = await ensureLeaflet();
+  if (!ok) {
+    mapInitialized = false;   // let REFRESH retry
+    document.getElementById('leafletMap').innerHTML =
+      '<div class="tmap-fatal">Map library could not be loaded (unpkg and jsDelivr both failed).<br>' +
+      'Check your connection or content blocker, then press ↺ REFRESH.</div>';
+    setMapStatus('');
+    if (mapDataReady) renderSidebar();   // the sidebar stats don't need Leaflet
+    return;
+  }
+  document.getElementById('leafletMap').innerHTML = '';   // clear any earlier error message
   leafletMap = L.map('leafletMap', {
     center:[25,15], zoom:2, minZoom:2,
     maxBounds:[[-85,-200],[85,200]], worldCopyJump:false,
   });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution:'© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CartoDB</a>',
-    subdomains:'abcd', maxZoom:12,
-  }).addTo(leafletMap);
+  addBaseLayer();
   mapMarkerGroup = L.layerGroup().addTo(leafletMap);
   loadMapData();
 }
 
-async function loadMapData() {
-  setMapStatus('Loading map data…');
-  // Data already loaded from feeds.json — just render it
-  renderMapLayer();
-  renderSidebar();
-  setMapStatus('');
+// Called by loadFeeds() when feeds.json has been parsed (or has failed).
+// Before this fix, opening the Map tab first meant it rendered "unavailable"
+// and never redrew once the data arrived.
+function onMapDataReady() {
+  mapDataReady = true;
+  try { if (leafletMap) refreshMap(); } catch (e) { console.error('map refresh failed', e); }
 }
 
-async function fetchFeodo() { return feodoData; }
-async function fetchKEV()   { return kevData; }
+function loadMapData() {
+  if (!mapDataReady) {                       // data still on its way — onMapDataReady() will redraw
+    setMapStatus('Waiting for feed data…');   // sidebar keeps its "Loading…" placeholders
+    return;
+  }
+  setMapStatus('');
+  renderMapLayer();
+  renderSidebar();
+}
 
 function setMapLayer(layer, btn) {
   mapLayer = layer;
   document.querySelectorAll('.tmap-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if (leafletMap) renderMapLayer();
+  if (leafletMap) { setMapStatus(''); renderMapLayer(); }
 }
+
+window.addEventListener('resize', () => { if (leafletMap) leafletMap.invalidateSize(); });
 
 function renderMapLayer() {
   mapMarkerGroup && mapMarkerGroup.clearLayers();
@@ -1476,6 +1558,9 @@ function renderMapLayer() {
 
 function renderC2Layer() {
   if (!feodoData) { setMapStatus('C2 data unavailable — Feodo Tracker may be rate-limiting, try refresh'); return; }
+  // Feodo Tracker has shrunk a lot since the Emotet/QakBot takedowns. A sparse map
+  // is the upstream feed, not a loading failure — say so instead of looking broken.
+  if (feodoData.length < 20) setMapStatus(`Feodo Tracker is currently listing only ${feodoData.length} C2 servers`);
   const byCountry = {};
   feodoData.forEach(e => {
     const cc = e.country||'XX';
@@ -1494,14 +1579,14 @@ function renderC2Layer() {
     const radius = 6 + Math.round(Math.log1p(data.total)/Math.log1p(maxCount)*22);
     const pct = data.total>0?Math.round(data.online/data.total*100):0;
     const families = Object.entries(data.malware).sort((a,b)=>b[1]-a[1]).slice(0,5)
-      .map(([k,v])=>`<span style="color:${MALWARE_COLORS[k]||'#5a7a9e'}">${k}</span>: ${v}`).join('<br>');
+      .map(([k,v])=>`<span style="color:${MALWARE_COLORS[k]||'#5a7a9e'}">${esc(k)}</span>: ${v}`).join('<br>');
     const m = L.circleMarker(latlng,{
       radius, color, fillColor:color,
       fillOpacity: data.online>0?0.55:0.2,
       weight: data.online>0?2:1, opacity:0.9,
     });
     m.bindPopup(`<div style="min-width:190px;font-family:monospace">
-      <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:8px">${COUNTRY_NAMES[cc]||cc}</div>
+      <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:8px">${esc(COUNTRY_NAMES[cc]||cc)}</div>
       <div style="display:flex;gap:14px;margin-bottom:8px">
         <div><div style="font-size:9px;opacity:.6">TOTAL</div><div style="font-size:17px;font-weight:700">${data.total}</div></div>
         <div><div style="font-size:9px;opacity:.6">ONLINE</div><div style="font-size:17px;font-weight:700;color:${data.online>0?'#ff3b5c':'#5a7a9e'}">${data.online}</div></div>
@@ -1528,7 +1613,13 @@ function renderKEVLayer() {
     if (!byCountry[cc]) byCountry[cc]=[];
     byCountry[cc].push(v);
   });
-  const jitter = ()=>(Math.random()-0.5)*4;
+  // Deterministic jitter (hash of the CVE id) so dots stay put between redraws
+  // instead of jumping around every time the layer is re-rendered.
+  const hash01 = (str, salt) => {
+    let h = 2166136261 ^ salt;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h >>> 0) % 10000 / 10000;
+  };
   Object.entries(byCountry).forEach(([cc,vulns]) => {
     const base = CENTROIDS[cc]; if (!base) return;
     if (cc==='US') {
@@ -1544,17 +1635,19 @@ function renderKEVLayer() {
       </div>`);
       mapMarkerGroup.addLayer(m);
     } else {
-      vulns.slice(0,30).forEach(v => {
+      // Newest 30 per country (previously just the first 30 in catalog order)
+      [...vulns].sort((a,b)=>String(b.dateAdded).localeCompare(String(a.dateAdded))).slice(0,30).forEach(v => {
         const fresh = (Date.now()-new Date(v.dateAdded))/86400000<=30;
-        const m = L.circleMarker([base[0]+jitter(),base[1]+jitter()],{
+        const id = String(v.cveID);
+        const m = L.circleMarker([base[0]+(hash01(id,1)-0.5)*4, base[1]+(hash01(id,2)-0.5)*4],{
           radius:fresh?7:4,color:fresh?'#ff3b5c':'#5a7a9e',
           fillColor:fresh?'#ff3b5c':'#5a7a9e',fillOpacity:.55,weight:1,
         });
         m.bindPopup(`<div style="min-width:190px;font-family:monospace">
-          <div style="color:#00d4ff;font-weight:700;margin-bottom:5px">${v.cveID}</div>
+          <div style="color:#00d4ff;font-weight:700;margin-bottom:5px">${esc(v.cveID)}</div>
           <div style="margin-bottom:4px"><b>${esc(v.vendorProject)}</b> — ${esc(v.product)}</div>
           <div style="font-size:10px;opacity:.6;margin-bottom:6px">${esc((v.shortDescription||'').slice(0,140))}…</div>
-          <div style="font-size:9px;opacity:.5">Added: <b style="color:${fresh?'#ff3b5c':'inherit'}">${v.dateAdded}</b> · Due: ${v.dueDate}</div>
+          <div style="font-size:9px;opacity:.5">Added: <b style="color:${fresh?'#ff3b5c':'inherit'}">${esc(v.dateAdded)}</b> · Due: ${esc(v.dueDate)}</div>
         </div>`);
         mapMarkerGroup.addLayer(m);
       });
@@ -1568,9 +1661,12 @@ function renderSidebar() {
   if (!feodoData) { cs.innerHTML='<div class="tmap-error">Feodo Tracker unavailable — try refresh</div>'; }
   else {
     const online=feodoData.filter(e=>e.status==='online').length;
+    const newest=feodoData.map(e=>e.last_online||String(e.first_seen||'').slice(0,10)).sort().pop()||'—';
     cs.innerHTML=[['TOTAL C2s',feodoData.length],['ONLINE NOW',`<span style="color:var(--red)">${online}</span>`],
-      ['OFFLINE',feodoData.length-online],['COUNTRIES',new Set(feodoData.map(e=>e.country)).size]]
-      .map(([l,v])=>`<div class="tmap-stat-row"><span class="tmap-stat-label">${l}</span><span class="tmap-stat-val">${v}</span></div>`).join('');
+      ['OFFLINE',feodoData.length-online],['COUNTRIES',new Set(feodoData.map(e=>e.country)).size],
+      ['NEWEST SIGHTING',esc(newest)]]
+      .map(([l,v])=>`<div class="tmap-stat-row"><span class="tmap-stat-label">${l}</span><span class="tmap-stat-val">${v}</span></div>`).join('')
+      + (feodoData.length<20 ? '<div class="tmap-note">Feodo Tracker (abuse.ch) is only publishing a handful of C2s right now. The map is working — the upstream feed is just nearly empty.</div>' : '');
   }
   // Top countries
   const cc = document.getElementById('c2Countries');
@@ -1580,7 +1676,7 @@ function renderSidebar() {
     const sorted=Object.entries(cnts).sort((a,b)=>b[1]-a[1]).slice(0,8);
     const max=sorted[0]?.[1]||1;
     cc.innerHTML=sorted.map(([c,n])=>`<div class="tmap-bar-row">
-      <div class="tmap-bar-label"><span>${COUNTRY_NAMES[c]||c}</span><span>${n}</span></div>
+      <div class="tmap-bar-label"><span>${esc(COUNTRY_NAMES[c]||c)}</span><span>${n}</span></div>
       <div class="tmap-bar-track"><div class="tmap-bar-fill" style="width:${Math.round(n/max*100)}%;background:var(--red)"></div></div>
     </div>`).join('');
   }
@@ -1592,7 +1688,7 @@ function renderSidebar() {
     const sorted=Object.entries(fams).sort((a,b)=>b[1]-a[1]).slice(0,8);
     const max=sorted[0]?.[1]||1;
     cm.innerHTML=sorted.map(([f,n])=>`<div class="tmap-bar-row">
-      <div class="tmap-bar-label"><span style="color:${MALWARE_COLORS[f]||'var(--dim)'}">${f}</span><span>${n}</span></div>
+      <div class="tmap-bar-label"><span style="color:${MALWARE_COLORS[f]||'var(--dim)'}">${esc(f)}</span><span>${n}</span></div>
       <div class="tmap-bar-track"><div class="tmap-bar-fill" style="width:${Math.round(n/max*100)}%;background:${MALWARE_COLORS[f]||'var(--dim)'}"></div></div>
     </div>`).join('');
   }
@@ -1602,16 +1698,18 @@ function renderSidebar() {
   else {
     const recent=[...kevData.vulnerabilities].sort((a,b)=>new Date(b.dateAdded)-new Date(a.dateAdded)).slice(0,8);
     kr.innerHTML=recent.map(v=>`<div class="tmap-kev-item">
-      <div class="tmap-kev-id">${v.cveID}</div>
+      <div class="tmap-kev-id">${esc(v.cveID)}</div>
       <div class="tmap-kev-vendor">${esc(v.vendorProject)} — ${esc(v.product)}</div>
-      <div class="tmap-kev-date">Added ${v.dateAdded}</div>
+      <div class="tmap-kev-date">Added ${esc(v.dateAdded)}</div>
     </div>`).join('');
   }
 }
 
 function setMapStatus(msg) { document.getElementById('mapStatus').textContent = msg; }
 function refreshMap() {
-  if (!leafletMap) return;
+  // Map never initialised (e.g. Leaflet failed to load) — REFRESH retries from scratch.
+  if (!leafletMap) { initMapIfNeeded(); return; }
+  setMapStatus('');
   mapMarkerGroup && mapMarkerGroup.clearLayers();
   renderMapLayer();
   renderSidebar();
