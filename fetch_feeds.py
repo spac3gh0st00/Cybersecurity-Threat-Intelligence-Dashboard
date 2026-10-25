@@ -93,6 +93,7 @@ FEEDS = [
     {"url": "https://www.troyhunt.com/rss/",                                       "src": "Troy Hunt",             "cat": "community"},
     {"url": "https://risky.biz/feeds/risky-business/",                             "src": "Risky Business",        "cat": "community"},
     {"url": "https://thecyberwire.com/feeds/daily-podcast.xml",                              "src": "The Cyber Wire",        "cat": "community"},
+    {"url": "https://ichi.global/api/alerts",                                         "src": "ICHI – Internet Cyber Health Index", "cat": "community"},
 ]
 
 HEADERS = {
